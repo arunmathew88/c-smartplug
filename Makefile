@@ -8,7 +8,7 @@ CFLAGS = -Wall -c $(DEBUG) -I$(IDIR) $(PROFILE)
 
 SDIR = src
 ODIR = bin
-LIBS = -lm -lpthread
+LIBS = -lm -lpthread -std=c++0x
 
 # header files => .cpp files
 _DEPS =
