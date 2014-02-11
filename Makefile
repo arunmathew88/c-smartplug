@@ -21,13 +21,13 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $<
 
-all: dir $(ODIR)/main
+all: dir $(ODIR)/broker
 
 dir:
 	mkdir -p $(ODIR)
 
-$(ODIR)/main: $(OBJ)
-	$(CC) -I$(IDIR) -o $@ $^ $(SDIR)/main.cpp $(PROFILE) $(LIBS)
+$(ODIR)/broker: $(OBJ)
+	$(CC) -I$(IDIR) -o $@ $^ $(SDIR)/broker.cpp $(PROFILE) $(LIBS)
 
 clean:
 	rm -rf $(ODIR) *~ $(INCDIR)/*~
