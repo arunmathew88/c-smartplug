@@ -11,23 +11,23 @@ ODIR = bin
 LIBS = -lm -lpthread
 
 # header files => .cpp files
-_DEPS =
+_DEPS = mc.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 # object files
-_OBJ =
+_OBJ = mc.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $<
 
-all: dir $(ODIR)/main
+all: dir $(ODIR)/house
 
 dir:
 	mkdir -p $(ODIR)
 
-$(ODIR)/main: $(OBJ)
-	$(CC) -I$(IDIR) -o $@ $^ $(SDIR)/main.cpp $(PROFILE) $(LIBS)
+$(ODIR)/house: $(OBJ)
+	$(CC) -I$(IDIR) -o $@ $^ $(SDIR)/house.cpp $(PROFILE) $(LIBS)
 
 clean:
 	rm -rf $(ODIR) *~ $(INCDIR)/*~
