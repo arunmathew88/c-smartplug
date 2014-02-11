@@ -1,3 +1,6 @@
+#ifndef MC_H
+#define MC_H
+
 #include <iostream>
 #include <cstdlib>
 #include <queue>
@@ -34,3 +37,5 @@ class Mc
 	float getMedian();
 	void insert(float elem);
 };
+
+#endif
