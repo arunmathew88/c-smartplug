@@ -14,36 +14,10 @@
 #include "mc.h"
 using namespace std;
 
-// listening function
-// create a new household thread, if doesn't exist
-// else store a message after parsing
-void *listenServer(void *threadid)
-{
-	while(true)
-	{
-		bytesreceived = recv(acceptfd, buff, bufflen, 0);
-		if(-1 == bytesreceived) {
-			perror("recv");
-			return 1;
-		}
-	}
-
-	if(-1 == close(acceptfd)) {
-		perror("close(acceptfd)");
-		return 1;
-	}
-
-	pthread_exit(NULL);
-}
-
-// function
-// hosuhold thread
-// process the message, synchronize
-
-// arg: acceptfd, house_id
+// arg: house_id, port
 int main(int argc, char const *argv[])
 {
-	int acceptfd, house_id;
+	int house_id, port;
 
 	if(argc < 2)
 	{
@@ -51,34 +25,73 @@ int main(int argc, char const *argv[])
 		exit(-1);
 	} else
 	{
-		acceptfd = atoi(argv[1]);
-		house_id = atoi(argv[2]);
+		house_id = atoi(argv[1]);
+		port = atoi(argv[2]);
 	}
 
-	cout<<acceptfd<<"\t"<<house_id<<endl;
+	int sockfd;
+	int acceptfd;
+	int forceRebind = 1;
+	struct sockaddr_in server;
+	struct sockaddr_in client;
+	socklen_t clientaddrlen = 0;
+	const size_t bufflen = 4096;
+	ssize_t bytesreceived = 0;
+	char buff[bufflen];
 
-	// create a thread to listen on the socket (virtual)
-	pthread_t listen_thread;
-	pthread_attr_t attr;
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-	int rc = pthread_create(&listen_thread, &attr, listenServer, NULL);
-    if(rc){
-        printf("ERROR: return code from pthread_create() is %d\n", rc);
-        exit(-1);
-    }
-
-    pthread_attr_destroy(&attr);
-    void *status;
-    rc = pthread_join(listen_thread, &status);
-    if (rc) {
-		printf("ERROR; return code from pthread_join() is %d\n", rc);
-		exit(-1);
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (-1 == sockfd) {
+		perror("socket");
+		return 1;
 	}
 
-	printf("Main: program completed. Exiting.\n");
-	pthread_exit(NULL);
+	if (-1 == setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &forceRebind, sizeof(int))) {
+		perror("setsockopt");
+		return 1;
+	}
 
-	// handle house processing
+	memset((void *) &server, 0, sizeof(struct sockaddr_in));
+	server.sin_family = AF_INET;
+	server.sin_port = htons(port);
+	server.sin_addr.s_addr = INADDR_ANY;
 
+	if (-1 == bind(sockfd, (const struct sockaddr *) &server,
+			sizeof(struct sockaddr_in))) {
+		perror("bind");
+		return 1;
+	}
+
+	if (-1 == listen(sockfd, 0)) {
+		perror("listen");
+		return 1;
+	}
+
+	acceptfd = accept(sockfd, (struct sockaddr *) &client, &clientaddrlen);
+	if (-1 == acceptfd) {
+		perror("accept");
+		return 1;
+	}
+
+	while(true)
+	{
+		bytesreceived = recv(acceptfd, buff, bufflen, 0);
+		if (-1 == bytesreceived) {
+			perror("recv");
+			return 1;
+		}
+
+		printf("%s\n", buff);
+
+		// if end message, end connection
+	}
+
+	if (-1 == close(acceptfd)) {
+		perror("close(acceptfd)");
+		return 1;
+	}
+	if (-1 == close(sockfd)) {
+		perror("close(sockfd)");
+		return 1;
+	}
+	return 0;
 }
