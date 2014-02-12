@@ -1,5 +1,8 @@
-## Data Structures ##
+## TODO ##
+Scoket (bloacking & event based)
+ZeroMQ
+Main logic
 
-## Cases ##
-
-## Distributed Processes ##
+## How to run ##
+-specify config in conf/nodes.config
+run broker and hosue processes on the corresponding nodes
