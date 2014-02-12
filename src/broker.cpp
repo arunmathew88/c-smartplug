@@ -2,6 +2,9 @@
 #include <fstream>
 #include <cstdlib>
 #include <queue>
+#include <unordered_map>
+
+#include "house.h"
 
 using namespace std;
 
@@ -67,9 +70,10 @@ int main()
     //Read the data stream
     ifstream file("priv/temp.csv");
     string buffer;
-    int house_id;
+    unsigned long house_id;
 
-    /*unordered_map <int, pid_t> m;
+    unordered_map <unsigned long, House*> house_map;
+    /*
     for(int i = 0; i < SIZE; ++i)
     {
         m[to_string(i)] = i;
@@ -84,9 +88,28 @@ int main()
     	string message;
     	unsigned pos_first = buffer.find_first_of(","); //need to remove sample id
     	unsigned pos_last = buffer.find_last_of(","); //need to get the starting point of the house id
-    	message = buffer.substr(pos_first + 1, pos_last - pos_first - 1);
-    	house_id = atof(buffer.substr(pos_last + 1).c_str());	//house id string to int
-    	//cout << "house_id = " << house_id << endl;
+    	message = buffer.substr(pos_first + 1);
+        house_id = stoul(buffer.substr(pos_last + 1).c_str());	//house id string to int
+        cout << "house_id = " << house_id << endl;
+
+        unordered_map<unsigned long, House*>::const_iterator got = house_map.find(house_id);
+        if(got != house_map.end())
+        {
+            //house id found in the map
+            got->second->send(message);
+        }
+        else
+        {
+            //house id not found in the map
+            //get the daemon on which the house process is to be run
+            Node * n = node_info->top();
+            node_info->pop();
+            n->remaining_house_processes = n->remaining_house_processes - 1;
+            node_info->push(n);
+
+            //create an house process
+            //send message to the house
+        }
         //cout << "message = " << message << endl;
     	//send message to the house with house id
 
