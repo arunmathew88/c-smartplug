@@ -3,85 +3,58 @@
 #include <cstdlib>
 #include <queue>
 #include <unordered_map>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "house.h"
 
 using namespace std;
 
-struct Node
-{
-    string ip_addr;
-    string port_number;
-    int max_house_processes;
-    int remaining_house_processes;
-    Node(string ip, string port, int max): ip_addr(ip), port_number(port), max_house_processes(max), remaining_house_processes(max)
-    {
-    }
-};
-
-class CompareNode
-{
-    bool reverse;
-
-    public:
-    CompareNode(const bool& rev=false){ reverse=rev;}
-    bool operator()(const Node * lhs, const Node * rhs) const
-    {
-        if(reverse) return (lhs->remaining_house_processes > rhs->remaining_house_processes);
-        else return (lhs->remaining_house_processes < rhs->remaining_house_processes);
-    }
-};
-
-int readConfigFile(priority_queue<Node*, vector<Node* >, CompareNode> *node_info)
+int readConfigFile(unordered_map <unsigned long, House*> * house_map, int sockfd)
 {
     //Reading config file
     ifstream file("priv/nodes.config");
     string buffer;
     string ip_addr;
     string port_number;
-    int max_house_processes;
+    unsigned long house_id;
 
     while (getline(file, buffer))
     {
-        unsigned pos_colon = buffer.find_first_of(":");
-        ip_addr = buffer.substr(0, pos_colon - 1);
         unsigned pos_comma = buffer.find_first_of(",");
-        port_number = buffer.substr(pos_colon + 1, pos_comma - pos_colon - 1);
-        max_house_processes = atoi(buffer.substr(pos_comma + 1).c_str());
-        Node *newNode = new Node(ip_addr, port_number,max_house_processes);
-        node_info->push(newNode);
+        house_id = stoul(buffer.substr(0, pos_comma));
+        unsigned pos_colon = buffer.find_first_of(":");
+        ip_addr = buffer.substr(pos_comma + 2, pos_colon - pos_comma - 2);
+        port_number = buffer.substr(pos_colon+1);
+
+        House *new_house = new House(ip_addr, port_number, house_id, sockfd);
+        house_map->insert({house_id, new_house});
     }
     return 1;
 }
 
 int main()
 {
-    //Read config file
-    priority_queue<Node*, vector<Node* >, CompareNode> *node_info = new priority_queue<Node*, vector<Node* >, CompareNode>();
-    readConfigFile(node_info);
-
-    while(!node_info->empty())
-    {
-        Node * n = node_info->top();
-        node_info->pop();
-        cout << n->ip_addr << " " << n->port_number << " "<< n->max_house_processes << endl;
+    //create socket
+    int sockfd;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (-1 == sockfd) {
+        perror("socket");
+        return 1;
     }
+    cout << "socket created " << endl;
+
+    //Read config file and create connections to the houses
+    unordered_map <unsigned long, House*> *house_map =  new unordered_map <unsigned long, House*>();
+    readConfigFile(house_map, sockfd);
 
     //Read the data stream
     ifstream file("priv/temp.csv");
     string buffer;
     unsigned long house_id;
 
-    unordered_map <unsigned long, House*> house_map;
-    /*
-    for(int i = 0; i < SIZE; ++i)
-    {
-        m[to_string(i)] = i;
-    }
-    for(int i = 0; i < (SIZE-1); ++i)
-    {
-        m[to_string(i)] = m[to_string(i+1)];
-    }*/
 
     while (getline(file, buffer))
     {
@@ -92,27 +65,18 @@ int main()
         house_id = stoul(buffer.substr(pos_last + 1).c_str());	//house id string to int
         cout << "house_id = " << house_id << endl;
 
-        unordered_map<unsigned long, House*>::const_iterator got = house_map.find(house_id);
-        if(got != house_map.end())
+        unordered_map<unsigned long, House*>::const_iterator got = house_map->find(house_id);
+        if(got != house_map->end())
         {
-            //house id found in the map
-            got->second->send(message);
+            //send message to the house process
+            got->second->sendMessage(message);
         }
         else
         {
-            //house id not found in the map
-            //get the daemon on which the house process is to be run
-            Node * n = node_info->top();
-            node_info->pop();
-            n->remaining_house_processes = n->remaining_house_processes - 1;
-            node_info->push(n);
-
-            //create an house process
-            //send message to the house
+            //erroneous house id
         }
-        //cout << "message = " << message << endl;
-    	//send message to the house with house id
 
     }
+    close(sockfd);
 	return 0;
 }
