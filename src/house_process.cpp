@@ -33,6 +33,7 @@ int main(int argc, char const *argv[])
 		house_id = atoi(argv[1]);
 		port = atoi(argv[2]);
 	}
+	cout<<"house running with id :"<<house_id<<endl;
 
 	int sockfd;
 	int acceptfd;
