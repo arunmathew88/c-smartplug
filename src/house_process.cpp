@@ -14,6 +14,11 @@
 #include "mc.h"
 using namespace std;
 
+void doProcessing(char *message, int len)
+{
+	printf("%s\n", message);
+}
+
 // arg: house_id, port
 int main(int argc, char const *argv[])
 {
@@ -80,7 +85,7 @@ int main(int argc, char const *argv[])
 			return 1;
 		}
 
-		printf("%s\n", buff);
+		doProcessing(buff, bufflen);
 
 		// if end message, end connection
 	}
