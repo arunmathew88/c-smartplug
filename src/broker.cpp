@@ -3,7 +3,7 @@
 #include "zhelpers.hpp"
 using namespace std;
 
-#define SUBSCRIBERS_EXPECTED 1
+#define SUBSCRIBERS_EXPECTED 40
 
 int main()
 {

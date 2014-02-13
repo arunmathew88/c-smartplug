@@ -1,6 +1,6 @@
-begin_port = 4000
+sync_port = 5556
+data_port = 5555
 
-(0..39).each.with_index { |house, index|
-	port = begin_port+index
-	system("./bin/house_process #{house} #{port} &")
+(0..39).each { |house|
+	system("./bin/house #{house} localhost #{sync_port} #{data_port} &")
 }
