@@ -34,7 +34,7 @@ ifeq "$(wildcard $(LDIR) )" ""
 	mkdir -p $(LDIR)
 	cd $(LDIR)/ && wget --tries=3 http://download.zeromq.org/zeromq-4.0.3.tar.gz
 	cd $(LDIR)/ && tar -zxvf zeromq-4.0.3.tar.gz
-	cd $(LDIR)/zeromq-4.0.3 && ./configure && make
+	cd $(LDIR)/zeromq-4.0.3 && ./configure && make && sudo make install
 	cd $(IDIR)/ && rm -f zmq.hpp && wget https://raw2.github.com/zeromq/cppzmq/master/zmq.hpp
 	cd $(IDIR)/ && rm -f zhelpers.hpp && wget https://raw2.github.com/imatix/zguide/master/examples/C++/zhelpers.hpp
 endif
