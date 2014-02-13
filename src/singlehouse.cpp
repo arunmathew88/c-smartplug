@@ -3,47 +3,68 @@
 #include <vector>
 #include <common.h>
 
-int main(int argc, char *argv[]) {
 
-	//for each measurement read do
-	struct measurement *measurement;
-	house_state_ptr state = new house_state;
+//global
+house_state state;
 
-	if ( state->find(measurement->household_id) == state->end() )
-		(*state)[measurement->household_id] = new household_state;
+//for each measurement read do
+void doProcessing(measurement *input) {
 
-	if ( (*state)[measurement->household_id]->find(measurement->plug_id) ==
-			(*state)[measurement->household_id]->end() ) {
+	if (input->property == 0) //ignore if the measurement is a work value
+		return ;
 
-		plug_state_ptr p_state 		= new plug_state;
-		(*p_state)[TIMESLICE_1M] 	= new timeslice_state;
-		(*p_state)[TIMESLICE_5M] 	= new timeslice_state;
-		(*p_state)[TIMESLICE_15M] 	= new timeslice_state;
-		(*p_state)[TIMESLICE_60M] 	= new timeslice_state;
-		(*p_state)[TIMESLICE_120M] = new timeslice_state;
-		(*(*state)[measurement->household_id])[measurement->plug_id] = p_state;
+	timeslice_state initial_timeslice_state = {0,0,0};
+	plug_state 		initial_plug_state = {
+			{TIMESLICE_1M, initial_timeslice_state},
+			{TIMESLICE_5M, initial_timeslice_state},
+			{TIMESLICE_15M, initial_timeslice_state},
+			{TIMESLICE_60M, initial_timeslice_state},
+			{TIMESLICE_120M, initial_timeslice_state}
+	};
+	household_state initial_household_state;
+
+	if ( state.find(input->household_id) == state.end() )
+		state[input->household_id] = initial_household_state;
+	if ( state[input->household_id].find(input->plug_id) ==
+			state[input->household_id].end() ) {
+		state[input->household_id][input->plug_id] = initial_plug_state;
+		for (auto& x:timeslice_lengths) {
+			state[input->household_id][input->plug_id][x.first].last_timestamp =
+					input->timestamp -
+					(input->timestamp % x.second == 0)? x.second : input->timestamp % x.second;
+		}
 	}
 
-	plug_state_ptr p_state = (*(*state)[measurement->household_id])[measurement->plug_id];
+	plug_state &p_state = state[input->household_id][input->plug_id];
 
-/*	for (plug_state::iterator x = p_state.begin(); x != p_state.end(); x++) {
-		if ( measurement->timestamp -­ x[last_ts] > x )
-			p_state[x][last_ts] = (line[ts] / x) * x
-			p_state[x+1][load]  += p_state[x][load]
-			p_state[x+1][count] += p_state[x][count]
-			p_state[x][load]    /= p_state[x][count]
-			median[plug_id][x][ (line[ts] / x) * x % 86400].insert(p_state[x][load])
-			forcast_load( (line[ts] / x) * x + 2 * x, x )
+	if (input->timestamp - p_state[TIMESLICE_1M].last_timestamp <= timeslice_lengths.at(TIMESLICE_1M)) {
+		p_state[TIMESLICE_1M].accumulated_load += input->value;
+		p_state[TIMESLICE_1M].count_of_values++;
+	}
+
+	for (auto& x:timeslice_lengths) {
+		if (input->timestamp - p_state[x.first].last_timestamp >= x.second) {
+			p_state[x.first].last_timestamp += x.second;
+			p_state[x.first+1].accumulated_load += p_state[x.first].accumulated_load;
+			p_state[x.first+1].count_of_values += p_state[x.first].count_of_values;
+			float average_load = p_state[x.first].accumulated_load /  p_state[x.first].count_of_values;
+//			median[plug_id][x][ (line[ts] / x) * x % 86400].insert(p_state[x][load])
+//			forcast_load( (line[ts] / x) * x + 2 * x, x )
 			// q1 result
-			h_hh(  (line[ts] / x) * x, x, p_state[x][load] , plug_id ) // for query 1
-			p_state[x][load]    = 0
-			p_state[x][count] = 0
+//			h_hh(  (line[ts] / x) * x, x, p_state[x][load] , plug_id ) // for query 1
+			p_state[x.first].accumulated_load = 0;
+			p_state[x.first].count_of_values = 0;
+		}
 		else
-			break
+			break;
 	}
 
-	p_state[60][load] += line[load]
-	p_state[60][count] ++
+	if (input->timestamp - p_state[TIMESLICE_1M].last_timestamp != 0) {
+		p_state[TIMESLICE_1M].accumulated_load += input->value;
+		p_state[TIMESLICE_1M].count_of_values++;
+	}
+
+/*
 	sliding_median[plug_id].insert(line[ts], line[load])
 	if ( last_ts < line[ts] )
 	h(last_ts, total_load)
@@ -61,3 +82,7 @@ int main(int argc, char *argv[]) {
 }
 
 
+int main(int argc, char *argv[]) {
+
+	return 0;
+}
