@@ -1,17 +1,23 @@
 #include <iostream>
+#include <cstdlib>
 #include <fstream>
 #include "zhelpers.hpp"
 using namespace std;
 
-#define SUBSCRIBERS_EXPECTED 40
+#define NUM_HOUSE 40
+#define DEFAULT_PORT 4000
 
 int main()
 {
     zmq::context_t context(1);
 
-    //  socket to talk to clients
-    zmq::socket_t broker(context, ZMQ_PUB);
-    broker.bind("tcp://*:5555");
+    // socket to talk to clients
+    zmq::socket_t **broker = new zmq::socket_t*[NUM_HOUSE];
+    for(int i=0; i<NUM_HOUSE; i++)
+    {
+        broker[i] = new zmq::socket_t(context, ZMQ_PAIR);
+        broker[i]->bind((string("tcp://*:") + to_string(DEFAULT_PORT + i)).c_str());
+    }
 
     //  socket to receive signals
     zmq::socket_t syncservice(context, ZMQ_REP);
@@ -19,7 +25,7 @@ int main()
 
     //  get synchronization from subscribers
     int subscribers = 0;
-    while(subscribers < SUBSCRIBERS_EXPECTED) {
+    while(subscribers < NUM_HOUSE) {
         // wait for synchronization request
         s_recv(syncservice);
         s_send(syncservice, "ok");
@@ -28,7 +34,8 @@ int main()
 
     // read the data stream from file
     ifstream file("priv/temp.csv");
-    string buffer, house_id, message;
+    string buffer, message;
+    int house_id;
 
     while(getline(file, buffer))
     {
@@ -42,18 +49,17 @@ int main()
         message = buffer.substr(pos_first+1, pos_last-pos_first);
 
         //house id string to int
-        house_id = buffer.substr(pos_last + 1);
-        if(house_id.length() == 1)
-            house_id = string("0") + house_id;
+        house_id = atoi(buffer.substr(pos_last + 1).c_str());
 
         // send the message
-        s_sendmore(broker, house_id);
-        s_send(broker, message);
+        if(house_id < NUM_HOUSE)
+            s_send(*broker[house_id], message);
     }
 
     // end of communication
-    s_sendmore(broker, "");
-    s_send(broker, "END");
+    for(int i=0; i<NUM_HOUSE; i++)
+        delete broker[i];
+    delete broker;
 
     sleep(1);
     return 0;

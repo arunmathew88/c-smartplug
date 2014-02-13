@@ -5,10 +5,11 @@
 #include "mc.h"
 using namespace std;
 
-// arg: house_id ip sync_port data_port
+// arg: house_id ip sync_port default_data_port
 int main(int argc, char const *argv[])
 {
-	string house_id, broker_ip, sync_port, data_port;
+	int house_id, default_data_port;
+	string broker_ip, sync_port;
 
 	if(argc < 5)
 	{
@@ -16,10 +17,10 @@ int main(int argc, char const *argv[])
 		exit(-1);
 	} else
 	{
-		house_id  = string(argv[1]);
+		house_id  = atoi(argv[1]);
 		broker_ip = string(argv[2]);
 		sync_port = string(argv[3]);
-		data_port = string(argv[4]);
+		default_data_port = atoi(argv[4]);
 	}
 	cout<<"house running with id :"<<house_id<<endl;
 
@@ -27,11 +28,8 @@ int main(int argc, char const *argv[])
 	zmq::context_t context(1);
 
 	//  First, connect our subscriber socket
-    zmq::socket_t subscriber(context, ZMQ_SUB);
-    subscriber.connect((string("tcp://") + broker_ip + string(":") + data_port).c_str());
-    if(house_id.length() == 1)
-    	house_id = string("0") + house_id;
-    subscriber.setsockopt(ZMQ_SUBSCRIBE, house_id.c_str(), 2);
+    zmq::socket_t subscriber(context, ZMQ_PAIR);
+    subscriber.connect((string("tcp://") + broker_ip + string(":") + to_string(default_data_port+house_id)).c_str());
 
     // second, synchronize with publisher
     zmq::socket_t syncclient(context, ZMQ_REQ);
@@ -44,12 +42,9 @@ int main(int argc, char const *argv[])
     s_recv(syncclient);
 
     while(true) {
-        // read envelope with address
-        string address = s_recv(subscriber);
-
-        // read message contents
+    	// read message contents
         string contents = s_recv(subscriber);
-        cout << "[" << address << "] " << contents << endl;
+        cout  << contents << endl;
     }
 
     return 0;
