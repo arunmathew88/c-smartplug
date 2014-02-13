@@ -6,22 +6,53 @@
 
 //global
 house_state state;
+std::unordered_map<unsigned int, plug_state> household_aggregate;
+plug_state house_aggregate;
+
+
+void processHouse(unsigned int boundary_ts, unsigned int x, float load) {
+
+	static unsigned int last_timestamp = boundary_ts;
+	if (last_timestamp < boundary_ts) {
+		for (auto& slice:timeslice_lengths)
+		if (last_timestamp % slice.second == 0) {
+//			process(last_timestamp, slice.first, house_aggregate[slice.first].accumulated_load);
+			house_aggregate[slice.first].accumulated_load = 0;
+		}
+		else
+			break;
+		last_timestamp = boundary_ts;
+	}
+	house_aggregate[x].accumulated_load += load;
+}
+
+void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsigned int household_id) {
+
+	static unsigned int last_timestamp = boundary_ts;
+	if (last_timestamp < boundary_ts) {
+		for (auto& household:household_aggregate) {
+			for (auto& slice:timeslice_lengths)
+			if (last_timestamp % slice.second == 0) {
+				processHouse(last_timestamp, slice.first, household.second[slice.first].accumulated_load);
+				household.second[slice.first].accumulated_load = 0;
+			}
+			else
+				break;
+			household_aggregate.erase(household.first);
+		}
+		last_timestamp = boundary_ts;
+	}
+	if (household_aggregate.find(household_id) == household_aggregate.end())
+		household_aggregate[household_id] = initial_plug_state;
+	household_aggregate[household_id][x].accumulated_load += load;
+}
+
 
 //for each measurement read do
 void doProcessing(measurement *input) {
 
 	if (input->property == 0) //ignore if the measurement is a work value
 		return ;
-
-	timeslice_state initial_timeslice_state = {0,0,0};
-	plug_state 		initial_plug_state = {
-			{TIMESLICE_1M, initial_timeslice_state},
-			{TIMESLICE_5M, initial_timeslice_state},
-			{TIMESLICE_15M, initial_timeslice_state},
-			{TIMESLICE_60M, initial_timeslice_state},
-			{TIMESLICE_120M, initial_timeslice_state}
-	};
-	household_state initial_household_state;
 
 	if ( state.find(input->household_id) == state.end() )
 		state[input->household_id] = initial_household_state;
@@ -52,8 +83,10 @@ void doProcessing(measurement *input) {
 //			forcast_load( (line[ts] / x) * x + 2 * x, x )
 			// q1 result
 //			h_hh(  (line[ts] / x) * x, x, p_state[x][load] , plug_id ) // for query 1
-			p_state[x.first].accumulated_load = 0;
-			p_state[x.first].count_of_values = 0;
+			if (x.first != TIMESLICE_30S) {
+				p_state[x.first].accumulated_load = 0;
+				p_state[x.first].count_of_values = 0;
+			}
 		}
 		else
 			break;
