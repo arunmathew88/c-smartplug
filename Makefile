@@ -1,14 +1,14 @@
 # makefile (use -pg for profiling)
 
 IDIR = include
+LDIR = deps
+SDIR = src
+ODIR = bin
+ZIDIR = $(LDIR)/zeromq-4.0.3/include
 CC = g++
 DEBUG = -g
 PROFILE =
-CFLAGS = -Wall -c $(DEBUG) -I$(IDIR) -L$(LPATH) -Wno-unused-function
-
-SDIR = src
-ODIR = bin
-LDIR = deps
+CFLAGS = -Wall -c $(DEBUG) -I$(IDIR) -I$(ZIDIR) -L$(LPATH) -Wno-unused-function
 LPATH = $(LDIR)/zeromq-4.0.3/src
 LIBS = -lm -lpthread -std=c++0x -lzmq
 
@@ -40,10 +40,10 @@ ifeq "$(wildcard $(LDIR) )" ""
 endif
 
 $(ODIR)/house: $(OBJ1)
-	$(CC) -I$(IDIR) -o $@ $^ $(PROFILE) $(LIBS)
+	$(CC) -I$(IDIR) -I$(ZIDIR) -o $@ $^ $(PROFILE) $(LIBS)
 
 $(ODIR)/broker: $(OBJ2)
-	$(CC) -I$(IDIR) -o $@ $^ $(PROFILE) $(LIBS)
+	$(CC) -I$(IDIR) -I$(ZIDIR) -o $@ $^ $(PROFILE) $(LIBS)
 
 clean:
 	rm -rf $(ODIR) *~
