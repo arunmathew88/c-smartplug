@@ -1,86 +1,65 @@
 #include <iostream>
 #include <fstream>
-#include <cstdlib>
-#include <queue>
-#include <unordered_map>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <netdb.h>
-#include "house.h"
+#include <ctime>
+#include "zhelpers.hpp"
 using namespace std;
 
-void readConfigFile(unordered_map <unsigned long, House*>* house_map, int sockfd)
-{
-    // reading config file
-    ifstream file("conf/nodes.config");
-    string buffer, ip_addr, port_number;
-    unsigned long house_id;
-
-    while(getline(file, buffer))
-    {
-        unsigned pos_comma = buffer.find_first_of(",");
-        house_id = stoul(buffer.substr(0, pos_comma));
-        unsigned pos_colon = buffer.find_first_of(":");
-        ip_addr = buffer.substr(pos_comma+1, pos_colon-pos_comma-2);
-        port_number = buffer.substr(pos_colon+1);
-
-        House *new_house = new House(ip_addr, port_number, house_id, sockfd);
-        house_map->insert({house_id, new_house});
-    }
-}
+#define SUBSCRIBERS_EXPECTED 1
+#define MESSAGE_SIZE (sizeof(int) + sizeof(float) + sizeof(bool) + sizeof(int) + sizeof(int) + 1)
 
 int main()
 {
-    //create socket
-    int sockfd;
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if(-1 == sockfd)
-    {
-        perror("socket");
-        return -1;
+    zmq::context_t context(1);
+
+    //  socket to talk to clients
+    zmq::socket_t broker(context, ZMQ_PUB);
+    broker.bind("tcp://*:5555");
+
+    //  socket to receive signals
+    zmq::socket_t syncservice(context, ZMQ_REP);
+    syncservice.bind("tcp://*:5556");
+
+    //  get synchronization from subscribers
+    int subscribers = 0;
+    while(subscribers < SUBSCRIBERS_EXPECTED) {
+        // wait for synchronization request
+        s_recv(syncservice);
+        s_send(syncservice, "ok");
+        subscribers++;
     }
 
-    // read config file and create connections to the houses
-    unordered_map <unsigned long, House*> *house_map =  new unordered_map <unsigned long, House*>();
-    readConfigFile(house_map, sockfd);
-
-    // read the data stream
+    // read the data stream from file
     ifstream file("priv/temp.csv");
-    string buffer;
-    unsigned long house_id;
+    string buffer, house_id;
+    int ts, plug_id, hh_id;
+    float val;
+    char prop;
+    char *dup_buffer;
 
-    while (getline(file, buffer))
+    while(getline(file, buffer))
     {
-    	string message;
+        // timestamp-4 value-4, property-1(char), plugid-4, hid-4, \0
+        char *message = new char[100];
 
-    	//need to remove sample id
-    	unsigned pos_first = buffer.find_first_of(",");
+        // process the data and convert into a message
+/* check ofr NULL */
+        dup_buffer = strdup(buffer.c_str());
+        strtok(dup_buffer, ",");
+        sscanf(strtok(NULL, ","), "%d", &ts);
+        sscanf(strtok(NULL, ","), "%f", &val);
+        sscanf(strtok(NULL, ","), "%c", &prop);
+        sscanf(strtok(NULL, ","), "%d", &plug_id);
+        sscanf(strtok(NULL, ","), "%d", &hh_id);
+        house_id = strtok(NULL, "\n");
+        sprintf(message, "%d%f%c%d%d", ts, val, prop, plug_id, hh_id);
 
-    	//need to get the starting point of the house id
-    	unsigned pos_last = buffer.find_last_of(",");
 
-    	message = buffer.substr(pos_first + 1);
-    	//house id string to int
-        house_id = stoul(buffer.substr(pos_last + 1).c_str());
-
-        unordered_map<unsigned long, House*>::const_iterator found_house = house_map->find(house_id);
-        if(found_house != house_map->end())
-        {
-            //send message to the house process
-            found_house->second->sendMessage(message);
-        } else
-        {
-            //erroneous house id
-        }
+        // send the message
+        s_sendmore(broker, house_id);
+        s_send(broker, message);
     }
 
-    close(sockfd);
-    // write code to free memory
-	return 0;
+    s_send(broker, "END");
+    sleep(1);
+    return 0;
 }

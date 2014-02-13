@@ -4,41 +4,54 @@ IDIR = include
 CC = g++
 DEBUG = -g
 PROFILE =
-CFLAGS = -Wall -c $(DEBUG) -I$(IDIR) $(PROFILE)
+CFLAGS = -Wall -c $(DEBUG) -I$(IDIR) -L$(LPATH) -Wno-unused-function
 
 SDIR = src
 ODIR = bin
-LIBS = -lm -lpthread -std=c++0x
+LDIR = deps
+LPATH = $(LDIR)/zeromq-4.0.3/src
+LIBS = -lm -lpthread -std=c++0x -lzmq
 
 # header files => .cpp files
-_DEPS = mc.h house.h
+_DEPS = mc.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 # object files
-_OBJ1 = mc.o house_process.o
+_OBJ1 = mc.o house.o
 OBJ1 = $(patsubst %,$(ODIR)/%,$(_OBJ1))
 
-_OBJ2 = house.o broker.o
+_OBJ2 = broker.o
 OBJ2 = $(patsubst %,$(ODIR)/%,$(_OBJ2))
 
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
 
-all: dir $(ODIR)/broker $(ODIR)/house_process
+all: setup $(ODIR)/broker $(ODIR)/house
 
-dir:
+setup:
 	mkdir -p $(ODIR)
+ifeq "$(wildcard $(LDIR) )" ""
+	mkdir -p $(LDIR)
+	cd $(LDIR)/ && wget --tries=3 http://download.zeromq.org/zeromq-4.0.3.tar.gz
+	cd $(LDIR)/ && tar -zxvf zeromq-4.0.3.tar.gz
+	cd $(LDIR)/zeromq-4.0.3 && ./configure && make
+	cd &(IDIR)/ && wget https://raw2.github.com/zeromq/cppzmq/master/zmq.hpp
+	cd &(IDIR)/ && wget https://raw2.github.com/imatix/zguide/master/examples/C++/zhelpers.hpp
+endif
 
-$(ODIR)/house_process: $(OBJ1)
+$(ODIR)/house: $(OBJ1)
 	$(CC) -I$(IDIR) -o $@ $^ $(PROFILE) $(LIBS)
 
 $(ODIR)/broker: $(OBJ2)
 	$(CC) -I$(IDIR) -o $@ $^ $(PROFILE) $(LIBS)
 
 clean:
-	rm -rf $(ODIR) *~ $(INCDIR)/*~
+	rm -rf $(ODIR) *~
 
 distclean: clean
+	rm -rf $(LDIR)
+	rm -f include/zmq.hpp
+	rm -f include/zhelpers.hpp
 
 rebuild: distclean all
 

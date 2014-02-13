@@ -1,34 +1,54 @@
-#include "house.h"
+#include <iostream>
+#include <cstring>
+#include <cstdio>
+#include "zhelpers.hpp"
+#include "mc.h"
+using namespace std;
 
-House::House(string ip, string port, int id, int socketfd)
+// arg: house_id ip sync_port data_port
+int main(int argc, char const *argv[])
 {
-	ip_addr = ip;
-	port_number = port;
-	house_id = id;
-	sockfd = socketfd;
-	setConnection();
-}
+	string house_id, broker_ip, sync_port, data_port;
 
-void House::setConnection()
-{
-	struct sockaddr_in dest_addr;
-	dest_addr.sin_family = AF_INET;
-	dest_addr.sin_port = htons(atoi(port_number.c_str()));
-	dest_addr.sin_addr.s_addr = inet_addr(ip_addr.c_str());
-
-	if(-1 == connect(sockfd, (const struct sockaddr *) &dest_addr, sizeof(struct sockaddr_in)))
+	if(argc < 5)
 	{
-        perror("connect");
-        return;
-    }
-    cout << "connected to "<< ip_addr << ":" << port_number  << endl;
-}
-
-void House::sendMessage(string message)
-{
-	if (-1 == send(sockfd, message.c_str(), (size_t) strlen(message.c_str()) + 1, 0))
+		cout<<"not enough arguments!"<<endl;
+		exit(-1);
+	} else
 	{
-        perror("send");
-        return;
+		house_id = string(argv[1]);
+		broker_ip = string(argv[2]);
+		sync_port = string(argv[3]);
+		data_port = string(argv[4]);
+	}
+	cout<<"house running with id :"<<house_id<<endl;
+
+	// creating a zmq context
+	zmq::context_t context(1);
+
+	//  First, connect our subscriber socket
+    zmq::socket_t subscriber(context, ZMQ_SUB);
+    subscriber.connect((string("tcp://") + broker_ip + string(":") + data_port).c_str());
+    subscriber.setsockopt(ZMQ_SUBSCRIBE, house_id.c_str(), 1);
+
+    // second, synchronize with publisher
+    zmq::socket_t syncclient(context, ZMQ_REQ);
+    syncclient.connect((string("tcp://") + broker_ip + string(":") + sync_port).c_str());
+
+    // send a synchronization request
+    s_send(syncclient, "ready");
+
+    // wait for synchronization reply
+    s_recv(syncclient);
+
+    while(true) {
+        // read envelope with address
+        string address = s_recv(subscriber);
+
+        // read message contents
+        string contents = s_recv(subscriber);
+        cout << "[" << address << "] " << contents << endl;
     }
+
+    return 0;
 }

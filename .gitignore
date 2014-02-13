@@ -20,6 +20,12 @@ bin/*
 ._*
 *~
 
+# lib files #
+#########################
+deps/*
+zmq.hpp
+zhelpers.hpp
+
 # doc and priv files #
 #########################
 doc/*
