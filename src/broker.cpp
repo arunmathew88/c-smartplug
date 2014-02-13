@@ -1,8 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include <ctime>
 #include "zhelpers.hpp"
-#include "common.h"
 using namespace std;
 
 #define SUBSCRIBERS_EXPECTED 1
@@ -30,29 +28,26 @@ int main()
 
     // read the data stream from file
     ifstream file("priv/temp.csv");
-    string buffer, house_id;
-    char *dup_buffer;
-    char* message = new char[sizeof(DP)+1];
-
-    // timestamp-4 value-4, property-1(char), plugid-4, hid-4, \0
-    DP dp;
+    string buffer, house_id, message;
 
     while(getline(file, buffer))
     {
-        // process the data and convert into a message @todo what if the line is not proper?
-        dup_buffer = strdup(buffer.c_str());
-        strtok(dup_buffer, ",");
-        sscanf(strtok(NULL, ","), "%d", &(dp.ts));
-        sscanf(strtok(NULL, ","), "%f", &(dp.val));
-        sscanf(strtok(NULL, ","), "%c", &(dp.prop));
-        sscanf(strtok(NULL, ","), "%d", &(dp.plug_id));
-        sscanf(strtok(NULL, ","), "%d", &(dp.hh_id));
-        house_id = strtok(NULL, "\n");
+        // need to remove sample id
+        unsigned pos_first = buffer.find_first_of(",");
+
+        // need to get the starting point of the house id
+        unsigned pos_last = buffer.find_last_of(",");
+
+        // THE message
+        message = buffer.substr(pos_first+1, pos_last-pos_first);
+
+        //house id string to int
+        house_id = buffer.substr(pos_last + 1);
+        if(house_id.length() == 1)
+            house_id = string("0") + house_id;
 
         // send the message
         s_sendmore(broker, house_id);
-        memcpy(message, &dp, sizeof(DP));
-        message[sizeof(DP)] = '\0';
         s_send(broker, message);
     }
 
@@ -61,7 +56,5 @@ int main()
     s_send(broker, "END");
 
     sleep(1);
-    delete message;
-    free(dup_buffer);
     return 0;
 }
