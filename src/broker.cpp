@@ -2,10 +2,10 @@
 #include <fstream>
 #include <ctime>
 #include "zhelpers.hpp"
+#include "common.h"
 using namespace std;
 
 #define SUBSCRIBERS_EXPECTED 1
-#define MESSAGE_SIZE (sizeof(int) + sizeof(float) + sizeof(bool) + sizeof(int) + sizeof(int) + 1)
 
 int main()
 {
@@ -31,35 +31,37 @@ int main()
     // read the data stream from file
     ifstream file("priv/temp.csv");
     string buffer, house_id;
-    int ts, plug_id, hh_id;
-    float val;
-    char prop;
     char *dup_buffer;
+    char* message = new char[sizeof(DP)+1];
+
+    // timestamp-4 value-4, property-1(char), plugid-4, hid-4, \0
+    DP dp;
 
     while(getline(file, buffer))
     {
-        // timestamp-4 value-4, property-1(char), plugid-4, hid-4, \0
-        char *message = new char[100];
-
-        // process the data and convert into a message
-/* check ofr NULL */
+        // process the data and convert into a message @todo what if the line is not proper?
         dup_buffer = strdup(buffer.c_str());
         strtok(dup_buffer, ",");
-        sscanf(strtok(NULL, ","), "%d", &ts);
-        sscanf(strtok(NULL, ","), "%f", &val);
-        sscanf(strtok(NULL, ","), "%c", &prop);
-        sscanf(strtok(NULL, ","), "%d", &plug_id);
-        sscanf(strtok(NULL, ","), "%d", &hh_id);
+        sscanf(strtok(NULL, ","), "%d", &(dp.ts));
+        sscanf(strtok(NULL, ","), "%f", &(dp.val));
+        sscanf(strtok(NULL, ","), "%c", &(dp.prop));
+        sscanf(strtok(NULL, ","), "%d", &(dp.plug_id));
+        sscanf(strtok(NULL, ","), "%d", &(dp.hh_id));
         house_id = strtok(NULL, "\n");
-        sprintf(message, "%d%f%c%d%d", ts, val, prop, plug_id, hh_id);
-
 
         // send the message
         s_sendmore(broker, house_id);
+        memcpy(message, &dp, sizeof(DP));
+        message[sizeof(DP)] = '\0';
         s_send(broker, message);
     }
 
+    // end of communication
+    s_sendmore(broker, "");
     s_send(broker, "END");
+
     sleep(1);
+    delete message;
+    free(dup_buffer);
     return 0;
 }

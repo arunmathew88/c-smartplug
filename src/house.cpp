@@ -2,6 +2,7 @@
 #include <cstring>
 #include <cstdio>
 #include "zhelpers.hpp"
+#include "common.h"
 #include "mc.h"
 using namespace std;
 
@@ -16,7 +17,7 @@ int main(int argc, char const *argv[])
 		exit(-1);
 	} else
 	{
-		house_id = string(argv[1]);
+		house_id  = string(argv[1]);
 		broker_ip = string(argv[2]);
 		sync_port = string(argv[3]);
 		data_port = string(argv[4]);
@@ -47,7 +48,11 @@ int main(int argc, char const *argv[])
 
         // read message contents
         string contents = s_recv(subscriber);
-        cout << "[" << address << "] " << contents << endl;
+        cout << "[" << address << "] " << contents << "\t";
+
+        DP dp;
+		memcpy(&dp, contents.c_str(), sizeof(DP));
+		cout<<dp.ts<<" "<<dp.val<<" "<<dp.prop<<" "<<dp.plug_id<<" "<<dp.hh_id<<endl;
     }
 
     return 0;
