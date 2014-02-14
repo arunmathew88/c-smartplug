@@ -4,23 +4,25 @@
 #include "zhelpers.hpp"
 using namespace std;
 
-#define NUM_HOUSE 40
+#define NUM_HOUSE 2
 #define DEFAULT_PORT 4000
 
 int main()
 {
-    zmq::context_t context(1);
+    zmq::context_t **context = new zmq::context_t*[NUM_HOUSE];
 
     // socket to talk to clients
     zmq::socket_t **broker = new zmq::socket_t*[NUM_HOUSE];
     for(int i=0; i<NUM_HOUSE; i++)
     {
-        broker[i] = new zmq::socket_t(context, ZMQ_PAIR);
+        context[i] = new zmq::context_t(1);
+        broker[i] = new zmq::socket_t(*context[i], ZMQ_PAIR);
         broker[i]->bind((string("tcp://*:") + to_string(DEFAULT_PORT + i)).c_str());
     }
 
     //  socket to receive signals
-    zmq::socket_t syncservice(context, ZMQ_REP);
+    zmq::context_t sync_context(1);
+    zmq::socket_t syncservice(sync_context, ZMQ_REP);
     syncservice.bind("tcp://*:5556");
 
     //  get synchronization from subscribers
