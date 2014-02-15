@@ -43,33 +43,37 @@ void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
 	printf("HOUSE_FORCAST_%u_S %u %u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, average_load);
 }
 
-void processHouse(unsigned int boundary_ts, unsigned int x, float load) {
+void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flush = false) {
 
 	static unsigned int last_timestamp = boundary_ts;
-	if (last_timestamp < boundary_ts) {
+	if (flush) {
 		for (auto& slice:timeslice_lengths) {
+			if (slice.first == TIMESLICE_30S) continue;
 			forcastHouseLoad(last_timestamp, house_aggregate[slice.first].accumulated_load, slice.first);
-			if (boundary_ts % slice.second == 0)
-				house_median_container[slice.first][(boundary_ts-slice.second)%86400].insert(house_aggregate[slice.first].accumulated_load);
+			if (last_timestamp % slice.second == 0)
+				house_median_container[slice.first][(last_timestamp-slice.second)%86400].insert(house_aggregate[slice.first].accumulated_load);
 			house_aggregate[slice.first].accumulated_load = 0;
 		}
+	} else
 		last_timestamp = boundary_ts;
-	}
 	house_aggregate[x].accumulated_load += load;
 }
 
-void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsigned int household_id) {
+void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsigned int household_id, bool flush = false) {
 
 	static unsigned int last_timestamp = boundary_ts;
-	if (last_timestamp < boundary_ts) {
+	if (flush) {
 		for (auto& household:household_aggregate) {
 			for (auto& slice:timeslice_lengths) {
+				if (slice.first == TIMESLICE_30S) continue;
 				processHouse(last_timestamp, slice.first, household.second[slice.first].accumulated_load);
 				household.second[slice.first].accumulated_load = 0;
 			}
 		}
+		processHouse(0,0,0,true);
+	} else
 		last_timestamp = boundary_ts;
-	}
+
 	if (household_aggregate.find(household_id) == household_aggregate.end())
 		household_aggregate[household_id] = initial_plug_state;
 	household_aggregate[household_id][x].accumulated_load += load;
@@ -148,7 +152,7 @@ void doProcessing(measurement *input) {
 			plug.second[TIMESLICE_30S].last_timestamp = last_timestamp;
 
 		}
-
+		processHouseHold(0,0,0,0,true);
 	}
 
 	plug_state &p_state = state[input->household_id][input->plug_id];
@@ -224,7 +228,7 @@ int main(int argc, char *argv[]) {
 		line.value = value;
 		if (!(ts % 60)) expect = 0;
 		float ret = -1;
-//		if ((ts)% 30)
+		if ((ts)% 30)
 			doProcessing(&line);
 
 //		cont[1].insert(ts -1377986400);
