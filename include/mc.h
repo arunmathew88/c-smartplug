@@ -25,8 +25,8 @@ typedef priority_queue<float, vector<float>, CompareFloat> Heap;
 // median container class
 class Mc
 {
-	Heap *max_heap;
-	Heap *min_heap;
+	Heap max_heap;
+	Heap min_heap;
 	int size;
 	float extra_elem;
 	bool odd;
