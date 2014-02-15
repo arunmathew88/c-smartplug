@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <fcntl.h>
 
 using namespace std;
 
@@ -15,10 +14,10 @@ class House
 {
    	private:
    		string ip_addr;
-  		string port_number;
-  		int house_id;
-  		int sockfd;
-  		int setConnection();
+		string port_number;
+		int house_id;
+		int sockfd;
+		int setConnection();
 
     public:
     	int sendMessage(string message);

@@ -9,7 +9,7 @@ House::House(string ip, string port, int id, int socketfd)
 	setConnection();
 }
 
-void House::setConnection()
+int House::setConnection()
 {
 	struct sockaddr_in dest_addr;
 	dest_addr.sin_family = AF_INET;
@@ -19,16 +19,18 @@ void House::setConnection()
 	if(-1 == connect(sockfd, (const struct sockaddr *) &dest_addr, sizeof(struct sockaddr_in)))
 	{
         perror("connect");
-        return;
+        return -1;
     }
     cout << "connected to "<< ip_addr << ":" << port_number  << endl;
+    return 1;
 }
 
-void House::sendMessage(string message)
+int House::sendMessage(string message)
 {
 	if (-1 == send(sockfd, message.c_str(), (size_t) strlen(message.c_str()) + 1, 0))
 	{
         perror("send");
-        return;
+        return -1;
     }
+    return 1;
 }

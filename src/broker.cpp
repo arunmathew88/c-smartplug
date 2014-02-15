@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <netdb.h>
+#include <fcntl.h>
+
 #include "house.h"
 using namespace std;
 
@@ -27,12 +29,23 @@ void readConfigFile(unordered_map <unsigned long, House*>* house_map, int sockfd
         unsigned pos_comma = buffer.find_first_of(",");
         house_id = stoul(buffer.substr(0, pos_comma));
         unsigned pos_colon = buffer.find_first_of(":");
-        ip_addr = buffer.substr(pos_comma+1, pos_colon-pos_comma-2);
+        ip_addr = buffer.substr(pos_comma+1, pos_colon-pos_comma-1);
         port_number = buffer.substr(pos_colon+1);
-
+        cout << "House = "<< house_id << " IP = " << ip_addr << " Port  = " << port_number << endl;
         House *new_house = new House(ip_addr, port_number, house_id, sockfd);
         house_map->insert({house_id, new_house});
+
     }
+}
+
+int set_nonblock(int socket) {
+    int flags;
+    flags = fcntl(socket,F_GETFL,0);
+    if(flags != -1){
+        fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+        return 1;
+    }
+    return -1;
 }
 
 int main()
@@ -49,6 +62,7 @@ int main()
     // read config file and create connections to the houses
     unordered_map <unsigned long, House*> *house_map =  new unordered_map <unsigned long, House*>();
     readConfigFile(house_map, sockfd);
+    set_nonblock(sockfd);
 
     // read the data stream
     ifstream file("priv/temp.csv");

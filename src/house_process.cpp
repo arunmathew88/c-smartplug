@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <fcntl.h>
 #include "mc.h"
 using namespace std;
 
@@ -18,6 +19,17 @@ void doProcessing(char *message, int len)
 {
 	printf("%s\n", message);
 }
+
+int set_nonblock(int socket) {
+    int flags;
+    flags = fcntl(socket,F_GETFL,0);
+    if(flags != -1){
+        fcntl(socket, F_SETFL, flags | O_NONBLOCK);
+        return 1;
+    }
+    return -1;
+}
+
 
 // arg: house_id, port
 int main(int argc, char const *argv[])
@@ -66,17 +78,19 @@ int main(int argc, char const *argv[])
 		perror("bind");
 		return 1;
 	}
-
+	cout << __LINE__ << endl;
 	if (-1 == listen(sockfd, 0)) {
 		perror("listen");
 		return 1;
 	}
-
+	cout << __LINE__ << endl;
 	acceptfd = accept(sockfd, (struct sockaddr *) &client, &clientaddrlen);
 	if (-1 == acceptfd) {
 		perror("accept");
 		return 1;
 	}
+	cout << __LINE__ << endl;
+	//set_nonblock(sockfd);
 
 	while(true)
 	{
