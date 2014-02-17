@@ -1,6 +1,6 @@
 sync_port = 5556
-default_data_port = 4000
+data_port = 5555
 
-(0..1).each { |house|
-	system("./bin/house #{house} localhost #{sync_port} #{default_data_port+house} > out#{house} &")
+(0..40).each { |house|
+	system("./bin/house #{house} localhost #{sync_port} #{data_port} > out#{house} &")
 }
