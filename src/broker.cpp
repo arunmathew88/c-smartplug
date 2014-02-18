@@ -4,28 +4,42 @@
 using namespace std;
 
 #define SUBSCRIBERS_EXPECTED 40
+#define NUM_THREADS 10
+#define SYNC_PORT 5556
+#define SLEEP_TIME 1
 
 int main()
 {
-    zmq::context_t context(10);
+    zmq::context_t context(NUM_THREADS);
 
-    //  socket to talk to clients
+    // socket to talk to clients
     zmq::socket_t **broker = new zmq::socket_t*[SUBSCRIBERS_EXPECTED];
     for(int i=0; i<SUBSCRIBERS_EXPECTED; i++)
-    {
         broker[i] = new zmq::socket_t(context, ZMQ_PUSH);
-        broker[i]->bind((string("tcp://*:") + to_string(4000 + i)).c_str());
-    }
 
-    //  socket to receive signals
+    // socket to receive address and port to connect to & synchronization
     zmq::socket_t syncservice(context, ZMQ_REP);
-    syncservice.bind("tcp://*:5556");
+    syncservice.bind((string("tcp://*:") + to_string(SYNC_PORT)).c_str());
 
-    //  get synchronization from subscribers
+    // get synchronization from subscribers
     int subscribers = 0;
-    while(subscribers < SUBSCRIBERS_EXPECTED) {
-        // wait for synchronization request
-        s_recv(syncservice);
+    while(subscribers < SUBSCRIBERS_EXPECTED)
+    {
+        // wait for synchronization request, first [house_id] then [ip:port]
+        int house_id = atoi(s_recv(syncservice).c_str());
+        string client = s_recv(syncservice);
+
+        if(house_id < SUBSCRIBERS_EXPECTED && house_id >= 0)
+            broker[house_id]->connect((string("tcp://") + client).c_str());
+        else
+        {
+            cout<<"error occurred: wrong house id!"<<endl;
+            for(int i=0; i<SUBSCRIBERS_EXPECTED; i++)
+                delete broker[i];
+            delete broker;
+            exit(-1);
+        }
+
         s_send(syncservice, "ok");
         subscribers++;
     }
@@ -34,6 +48,7 @@ int main()
     ifstream file("priv/temp.csv");
     string buffer, house_id, message;
 
+    // @todo what if something is wrong with the message read from file
     while(getline(file, buffer))
     {
         // need to remove sample id
@@ -47,24 +62,17 @@ int main()
 
         //house id string to int
         house_id = buffer.substr(pos_last + 1);
-        // if(house_id.length() == 1)
-        //     house_id = string("0") + house_id;
 
         // send the message
-        //s_sendmore(broker, house_id);
         s_send(*broker[atoi(house_id.c_str())], message);
-        cout<<"."; cout.flush();
     }
 
-    // end of communication
-    // s_sendmore(broker, "");
-    // s_send(broker, "END");
+    // @todo end of communication
 
-    sleep(1);
+    // clean up
+    sleep(SLEEP_TIME);
     for(int i=0; i<SUBSCRIBERS_EXPECTED; i++)
-    {
         delete broker[i];
-    }
     delete broker;
     return 0;
 }

@@ -1,5 +1,9 @@
 ## TODO ##
+##########
 Main logic
+socketoptions (HWM)
+finding its own ip, hosue.cpp
+@todo
 
 ## How to run ##
 T1: ./bin/broker
