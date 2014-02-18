@@ -7,7 +7,7 @@ using namespace std;
 
 int main()
 {
-    zmq::context_t context(1);
+    zmq::context_t context(10);
 
     //  socket to talk to clients
     zmq::socket_t **broker = new zmq::socket_t*[SUBSCRIBERS_EXPECTED];
@@ -31,7 +31,7 @@ int main()
     }
 
     // read the data stream from file
-    ifstream file("priv/sorted100M.csv");
+    ifstream file("priv/temp.csv");
     string buffer, house_id, message;
 
     while(getline(file, buffer))
@@ -61,5 +61,10 @@ int main()
     // s_send(broker, "END");
 
     sleep(1);
+    for(int i=0; i<SUBSCRIBERS_EXPECTED; i++)
+    {
+        delete broker[i];
+    }
+    delete broker;
     return 0;
 }
