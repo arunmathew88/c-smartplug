@@ -214,7 +214,7 @@ void doProcessing(measurement *input) {
 
 }
 
-
+/*
 int main(int argc, char *argv[]) {
 
   	std::unordered_map<unsigned int,Mc> cont;
@@ -241,3 +241,4 @@ int main(int argc, char *argv[]) {
 
 	return 0;
 }
+*/
