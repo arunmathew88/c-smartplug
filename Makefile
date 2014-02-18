@@ -13,7 +13,7 @@ LPATH = $(LDIR)/zeromq-4.0.3/src
 LIBS = -lm -lpthread -std=c++0x -lzmq
 
 # header files => .cpp files
-_DEPS = mc.h
+_DEPS = mc.h common.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 # object files
