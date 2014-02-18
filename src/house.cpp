@@ -27,11 +27,11 @@ int main(int argc, char const *argv[])
 	zmq::context_t context(10);
 
 	//  First, connect our subscriber socket
-    zmq::socket_t subscriber(context, ZMQ_SUB);
+    zmq::socket_t subscriber(context, ZMQ_PULL);
     subscriber.connect((string("tcp://") + broker_ip + string(":") + data_port).c_str());
-    if(house_id.length() == 1)
-    	house_id = string("0") + house_id;
-    subscriber.setsockopt(ZMQ_SUBSCRIBE, house_id.c_str(), 2);
+    // if(house_id.length() == 1)
+    // 	house_id = string("0") + house_id;
+    // subscriber.setsockopt(ZMQ_SUBSCRIBE, house_id.c_str(), 2);
 
     // second, synchronize with publisher
     zmq::socket_t syncclient(context, ZMQ_REQ);
@@ -45,11 +45,11 @@ int main(int argc, char const *argv[])
 
     while(true) {
         // read envelope with address
-        string address = s_recv(subscriber);
+        //string address = s_recv(subscriber);
 
         // read message contents
         string contents = s_recv(subscriber);
-        cout << "[" << address << "] " << contents << endl;
+        cout  << contents << endl;
     }
 
     return 0;

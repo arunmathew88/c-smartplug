@@ -10,8 +10,12 @@ int main()
     zmq::context_t context(1);
 
     //  socket to talk to clients
-    zmq::socket_t broker(context, ZMQ_XPUB);
-    broker.bind("tcp://*:5555");
+    zmq::socket_t **broker = new zmq::socket_t*[SUBSCRIBERS_EXPECTED];
+    for(int i=0; i<SUBSCRIBERS_EXPECTED; i++)
+    {
+        broker[i] = new zmq::socket_t(context, ZMQ_PUSH);
+        broker[i]->bind((string("tcp://*:") + to_string(4000 + i)).c_str());
+    }
 
     //  socket to receive signals
     zmq::socket_t syncservice(context, ZMQ_REP);
@@ -43,17 +47,18 @@ int main()
 
         //house id string to int
         house_id = buffer.substr(pos_last + 1);
-        if(house_id.length() == 1)
-            house_id = string("0") + house_id;
+        // if(house_id.length() == 1)
+        //     house_id = string("0") + house_id;
 
         // send the message
-        s_sendmore(broker, house_id);
-        s_send(broker, message);
+        //s_sendmore(broker, house_id);
+        s_send(*broker[atoi(house_id.c_str())], message);
+        cout<<"."; cout.flush();
     }
 
     // end of communication
-    s_sendmore(broker, "");
-    s_send(broker, "END");
+    // s_sendmore(broker, "");
+    // s_send(broker, "END");
 
     sleep(1);
     return 0;
