@@ -1,12 +1,13 @@
 #include <iostream>
 #include <fstream>
+#include "common.h"
 #include "zhelpers.hpp"
 using namespace std;
 
 #define SUBSCRIBERS_EXPECTED 40
 #define NUM_THREADS 10
 #define SYNC_PORT 5556
-#define SLEEP_TIME 1
+#define SLEEP_TIME 1000
 
 int main()
 {
@@ -46,25 +47,21 @@ int main()
 
     // read the data stream from file
     ifstream file("priv/temp.csv");
-    string buffer, house_id, message;
+    string buffer;
+    unsigned long id;
+    unsigned int ts, plug_id, hh_id, house_id;
+    float val;
+    char prop;
 
     // @todo what if something is wrong with the message read from file
     while(getline(file, buffer))
     {
-        // need to remove sample id
-        unsigned pos_first = buffer.find_first_of(",");
-
-        // need to get the starting point of the house id
-        unsigned pos_last = buffer.find_last_of(",");
-
-        // THE message
-        message = buffer.substr(pos_first+1, pos_last-pos_first);
-
-        //house id string to int
-        house_id = buffer.substr(pos_last + 1);
+        if(sscanf(buffer.c_str(), "%lu,%u,%f,%c,%u,%u,%u", &id, &ts, &val, &prop, &plug_id, &hh_id, &house_id) < 7)
+            continue;
+        measurement message(ts, val, prop, plug_id, hh_id);
 
         // send the message
-        s_send(*broker[atoi(house_id.c_str())], message);
+        zmq_send(*broker[house_id], &message, sizeof(measurement), 0);
     }
 
     // @todo end of communication

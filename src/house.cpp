@@ -200,32 +200,6 @@ void doProcessing(measurement *input) {
 	}
 }
 
-measurement split(string input){
-		vector<string> list;
-		string st="";
-		int size = input.size();
-		for(int i=0;i<size;i++){
-			if(input[i]==',' || i==size-1){
-				if(i==size-1)
-					st+=input[i];
-				list.push_back(st);
-				st="";
-			}
-			else{
-				st+=input[i];
-			}
-		}
-	
-	measurement m;
-	m.timestamp = atoi(list[0].c_str());
-	m.value = atof(list[1].c_str());
-	m.property = list[2][0];
-	m.plug_id = atoi(list[3].c_str());
-	m.household_id = atoi(list[4].c_str());
-	 return m;
-
-	}
-
 // arg: house_id broker_ip sync_port self_ip data_port
 int main(int argc, char const *argv[])
 {
@@ -263,12 +237,14 @@ int main(int argc, char const *argv[])
     // wait for synchronization reply
     s_recv(syncclient);
 
+    measurement *m = new measurement();
     while(true) {
         // read message contents
-        string contents = s_recv(subscriber);
-        measurement m = split(contents);
-        doProcessing(&m);
+        zmq_recv(subscriber, m, sizeof(measurement), 0);
+        cout<<m->timestamp<<endl;
+        doProcessing(m);
     }
+    delete m;
 
     return 0;
 }

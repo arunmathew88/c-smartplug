@@ -5,13 +5,17 @@
 #include <map>
 
 // input struct
-typedef struct {
+struct measurement {
 	unsigned int	timestamp;
 	float			value;
 	unsigned char	property;
 	unsigned int	plug_id;
 	unsigned int	household_id;
-} measurement;
+
+	measurement(unsigned int t=-1, float v=-1, unsigned char p=0, unsigned int i=0, unsigned int h=0) :
+		timestamp(t), value(v), property(p), plug_id(i), household_id(h) {}
+};
+typedef struct measurement measurement;
 
 // current data for each time slice (query 1)
 typedef struct {

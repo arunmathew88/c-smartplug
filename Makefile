@@ -47,6 +47,7 @@ $(ODIR)/broker: $(OBJ2)
 
 clean:
 	rm -rf $(ODIR) *~
+	rm out*
 
 distclean: clean
 	rm -rf $(LDIR)
