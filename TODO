@@ -4,6 +4,7 @@ Main logic
 socketoptions (HWM)
 finding its own ip, hosue.cpp
 @todo
+merging, query 2, optimization, median code for query 2
 
 ## How to run ##
 T1: ./bin/broker
