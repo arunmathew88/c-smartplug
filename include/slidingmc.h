@@ -7,18 +7,13 @@
 using namespace std;
 
 #define MAX_WINDOW_SIZE 24*3600
-#define MAX_BINS 100
+#define MAX_BINS 1000
 
 enum Window
 {
  	WINDOW_1HR = 0,
 	WINDOW_24HR,
 	NUM_WINDOWS
-};
-
-int WindowSize[] = {
- 	60*60,
-	24*3600,
 };
 
 struct Bin

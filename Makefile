@@ -23,10 +23,13 @@ OBJ1 = $(patsubst %,$(ODIR)/%,$(_OBJ1))
 _OBJ2 = broker.o
 OBJ2 = $(patsubst %,$(ODIR)/%,$(_OBJ2))
 
+_OBJ3 = main.o slidingmc.o
+OBJ3 = $(patsubst %,$(ODIR)/%,$(_OBJ3))
+
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
 
-all: setup $(ODIR)/broker $(ODIR)/house
+all: setup $(ODIR)/broker $(ODIR)/house $(ODIR)/main
 
 setup:
 	mkdir -p $(ODIR)
@@ -43,6 +46,9 @@ $(ODIR)/house: $(OBJ1)
 	$(CC) -I$(IDIR) -I$(ZIDIR) -o $@ $^ $(PROFILE) $(LIBS)
 
 $(ODIR)/broker: $(OBJ2)
+	$(CC) -I$(IDIR) -I$(ZIDIR) -o $@ $^ $(PROFILE) $(LIBS)
+
+$(ODIR)/main: $(OBJ3)
 	$(CC) -I$(IDIR) -I$(ZIDIR) -o $@ $^ $(PROFILE) $(LIBS)
 
 test:
