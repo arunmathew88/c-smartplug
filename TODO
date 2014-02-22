@@ -9,3 +9,8 @@ merging, query 2, optimization, median code for query 2
 ## How to run ##
 T1: ./bin/broker
 T2: ruby script/allhouses.rb
+
+
+update doc
+test sliding window
+database

@@ -45,6 +45,10 @@ $(ODIR)/house: $(OBJ1)
 $(ODIR)/broker: $(OBJ2)
 	$(CC) -I$(IDIR) -I$(ZIDIR) -o $@ $^ $(PROFILE) $(LIBS)
 
+test:
+	$(CC) -I$(IDIR) test/slidingmc_test.cpp -o $(ODIR)/slidingmc_test -lcppunit
+	./$(ODIR)/slidingmc_test
+
 clean:
 	rm -rf $(ODIR) *~
 	rm out*
@@ -56,4 +60,4 @@ distclean: clean
 
 rebuild: distclean all
 
-.PHONY: clean
+.PHONY: clean test

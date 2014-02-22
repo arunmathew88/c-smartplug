@@ -8,14 +8,31 @@
 
 class SlidingMcTest : public CppUnit::TestFixture
 {
+  protected:
+  	SlidingMc *sm;
+
   public:
 	void setUp()
 	{
+		sm = new SlidingMc(1);
 	}
 
 	void tearDown()
 	{
+		delete sm;
 	}
+
+	void test1()
+	{
+		for(int i=1; i<4000; i++)
+			sm->insert(i, i);
+		cout<<sm->getMedian(4000, WINDOW_1HR)<<endl;
+		CPPUNIT_ASSERT(sm->getMedian(4000, WINDOW_1HR) == 2000);
+	}
+
+	CPPUNIT_TEST_SUITE(SlidingMcTest);
+	CPPUNIT_TEST(test1);
+	CPPUNIT_TEST_SUITE_END();
 };
 
 CPPUNIT_TEST_SUITE_REGISTRATION(SlidingMcTest);
