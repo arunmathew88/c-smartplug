@@ -3,11 +3,23 @@
 
 #include <iostream>
 #include <cstdlib>
-#include "queue.h"
+#include <cstring>
 using namespace std;
 
-#define WINDOW_SIZE 24*3600
-#define NUM_BINS 100
+#define MAX_WINDOW_SIZE 24*3600
+#define MAX_BINS 100
+
+enum Window
+{
+ 	WINDOW_1HR = 0,
+	WINDOW_24HR,
+	NUM_WINDOWS
+};
+
+int WindowSize[] = {
+ 	60*60,
+	24*3600,
+};
 
 struct bin
 {
@@ -20,21 +32,28 @@ struct bin
 
 class SlidingMc
 {
-	int size;
-	int num_bins;
-	bin *bins;
-	Queue<float> *queue;
-	unsigned base_ts;
+	int size[NUM_WINDOWS];  		// number of elments in the median container for 1 hr & 24hr sliding window
+	int num_bins[NUM_WINDOWS];		// number of bins <= NUM_BINS for 1 hr & 24hr sliding window
+	bin **bins;						// array of bins for 1 hr & 24hr sliding window
+	unsigned *last_ts;				// last timestamp removed from the container
 
-	float findMedian(int index, int cum, int mindex);
-	int binarySearch(int first, int last, float val);
-	void addNewBin(int pos, bin b);
+	// queue structure
+	float *data;
+	int queue_index;
+	unsigned queue_ts;
+
+	float findMedian(Window ws, float mindex);
+	int binarySearch(Window ws, int first, int last, float val);
+	void addNewBin(Window ws, int pos, bin b);
+	void insToMc(Window ws, float val);
+	float getValueForTs(unsigned ts);
+	void removeValueFromMc(Window ws, float val);
+	void alignWindow(unsigned ts);
 
   public:
-	SlidingMc(unsigned int ts);
+	SlidingMc(unsigned ts);
 	~SlidingMc();
-	void init(unsigned int ts, int size);
-	float getMedian(unsigned int ts);
+	float getMedian(unsigned int ts, Window ws);
 	void insert(unsigned int ts, float val);
 };
 

@@ -13,11 +13,11 @@ LPATH = $(LDIR)/zeromq-4.0.3/src
 LIBS = -lm -lpthread -std=c++0x -lzmq
 
 # header files => .cpp files
-_DEPS = mc.h common.h queue.h slidingmc.h
+_DEPS = mc.h common.h slidingmc.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 # object files
-_OBJ1 = mc.o house.o queue.o slidingmc.o
+_OBJ1 = mc.o house.o slidingmc.o
 OBJ1 = $(patsubst %,$(ODIR)/%,$(_OBJ1))
 
 _OBJ2 = broker.o
