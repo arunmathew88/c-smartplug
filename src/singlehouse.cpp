@@ -65,16 +65,19 @@ void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flu
 void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsigned int household_id, bool flush = false) {
 
 	static unsigned int last_timestamp = boundary_ts;
-	if (flush) {
+	if (flush || last_timestamp < boundary_ts) {
 		for (auto& household:household_aggregate) {
 			for (auto& slice:timeslice_lengths) {
 				if (slice.first == TIMESLICE_30S) continue;
-				processHouse(last_timestamp, slice.first, household.second[slice.first].accumulated_load);
+				if (flush)
+					processHouse(last_timestamp, slice.first, household.second[slice.first].accumulated_load);
 				household.second[slice.first].accumulated_load = 0;
 			}
 		}
-		processHouse(0,0,0,true);
-	} else {
+		if (flush)
+			processHouse(0,0,0,true);
+	}
+	if (!flush) {
 		last_timestamp = boundary_ts;
 
 		if (household_aggregate.find(household_id) == household_aggregate.end())
