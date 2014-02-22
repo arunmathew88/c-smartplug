@@ -2,13 +2,13 @@
 
 SlidingMc::SlidingMc(unsigned ts)
 {
-	bins = new bin*[NUM_WINDOWS];
+	bins = new Bin*[NUM_WINDOWS];
 	last_ts = new unsigned[NUM_WINDOWS];
 	for(int i=0; i<NUM_WINDOWS; i++)
 	{
 		size[i] = 0;
 		num_bins[i] = 0;
-		bins[i] = new bin[MAX_BINS];
+		bins[i] = new Bin[MAX_BINS];
 		last_ts[i] = ts-1;
 	}
 
@@ -17,9 +17,9 @@ SlidingMc::SlidingMc(unsigned ts)
 	queue_ts = ts-1;
 }
 
-float SlidingMc::findMedian(Window ws, float mindex)
+float SlidingMc::findMedian(Window ws, int mindex)
 {
-	int index = 0, cum = 0;
+	int index=-1, cum=0;
 
 	while(cum < mindex)
 	{
@@ -33,42 +33,73 @@ float SlidingMc::findMedian(Window ws, float mindex)
 		return (bins[ws][index-1].val + bins[ws][index].val)/2;
 }
 
-int SlidingMc::binarySearch(Window ws, int first, int last, float val)
+int SlidingMc::binarySearch(Window ws, float val)
 {
 	if(num_bins[ws] == 0)
 		return 0;
 
+	if(val < bins[ws][0].val)
+		return -1;
+
+	return binarySearch(ws, 0, num_bins[ws], val);
+}
+
+int SlidingMc::binarySearch(Window ws, int first, int last, float val)
+{
 	int mid = (last + first)/2;
 	if(mid == first)
-		if(val == bins[ws][mid].val)
-			return mid;
-		else if(val > bins[ws][mid].val)
-			return last;
-		else
-			return first;
+		return first;
 	else
+	{
 		if(val == bins[ws][mid].val)
 			return mid;
 		else if(val > bins[ws][mid].val)
-			return binarySearch(ws, mid, first, val);
+			return binarySearch(ws, mid+1, last, val);
 		else
 			return binarySearch(ws, first, mid, val);
+	}
 }
 
 void SlidingMc::insToMc(Window ws, float val)
 {
-	int pos = binarySearch(ws, 0, num_bins[ws], val);
+	int pos = binarySearch(ws, val);
 	size[ws]++;
 
-	// @todo merge bins here, if required
-	if(pos >= num_bins[ws])
-		bins[ws][pos] = bin(val, 1);
-	else
+	//if(pos == -1)
+
+	if(pos > num_bins[ws])
 	{
-		if(bins[ws][pos].val == val || MAX_BINS <= num_bins[ws])
+		cout<<"error occured: binarySearch is wrong!"<<endl;
+		exit(-1);
+	} else if(pos == num_bins[ws])
+	{
+		bins[ws][pos] = Bin(val, 1);
+		num_bins[ws]++;
+	} else
+	{
+		if(bins[ws][pos].val == val || MAX_BINS < num_bins[ws])
 			bins[ws][pos].freq++;
 		else
-			addNewBin(ws, pos, bin(val, 1));
+			addNewBin(ws, pos, Bin(val, 1));
+	}
+
+	// merge bins
+	if(num_bins[ws] == MAX_BINS)
+	{
+		int min = bins[ws][0].freq + bins[ws][1].freq, sum, index=0;
+		for(int i=1; i<MAX_BINS-1; i++)
+		{
+			sum = bins[ws][i].freq + bins[ws][i+1].freq;
+			if(min > sum)
+			{
+				min = sum;
+				index = i;
+			}
+		}
+
+		bins[ws][index].freq = min;
+		memcpy(&(bins[ws][index+1]), &(bins[ws][index+2]), sizeof(Bin)*(num_bins[ws]-index-2));
+		num_bins[ws]--;
 	}
 }
 
@@ -83,10 +114,40 @@ float SlidingMc::getValueForTs(unsigned ts)
 	return data[(queue_ts-ts+queue_index-1) % MAX_WINDOW_SIZE];
 }
 
+void SlidingMc::setValueForTs(unsigned ts, float val)
+{
+	if(ts < queue_ts)
+	{
+		cout<<"already inserted into the qeue!"<<endl;
+		exit(-1);
+	}
+
+	queue_ts++;
+	while(ts > queue_ts)
+	{
+		data[queue_index] = -1;
+    	queue_index++;
+    	if(queue_index == MAX_WINDOW_SIZE)
+			queue_index = 0;
+		queue_ts++;
+	}
+
+	data[queue_index] = val;
+    queue_index++;
+    if(queue_index == MAX_WINDOW_SIZE)
+		queue_index = 0;
+}
+
 void SlidingMc::removeValueFromMc(Window ws, float val)
 {
-	int pos = binarySearch(ws, 0, num_bins[ws], val);
-	bins[ws][pos].freq++;
+	int pos = binarySearch(ws, val);
+	bins[ws][pos].freq--;
+	size[ws]--;
+	if(bins[ws][pos].freq == 0)
+	{
+		num_bins[ws]--;
+		memcpy(&(bins[ws][pos]), &(bins[ws][pos+1]), sizeof(Bin)*(num_bins[ws]-pos-1));
+	}
 }
 
 void SlidingMc::alignWindow(unsigned ts)
@@ -104,9 +165,9 @@ void SlidingMc::alignWindow(unsigned ts)
 	}
 }
 
-void SlidingMc::addNewBin(Window ws, int pos, bin b)
+void SlidingMc::addNewBin(Window ws, int pos, Bin b)
 {
-	memcpy(&(bins[ws][pos+1]), &(bins[ws][pos]), sizeof(bin)*(num_bins[ws]-2-1));
+	memcpy(&(bins[ws][pos+1]), &(bins[ws][pos]), sizeof(Bin)*(num_bins[ws]-pos+1));
 	bins[ws][pos] = b;
 	num_bins[ws]++;
 }
@@ -120,18 +181,13 @@ float SlidingMc::getMedian(unsigned int ts, Window ws)
 		cout<<"Can't find median unless at least one value is inserted!"<<endl;
 		exit(-1);
 	} else
-		return findMedian(ws, (float)(size[ws]/2));
+		return findMedian(ws, (size[ws]+1)/2);
 }
 
 void SlidingMc::insert(unsigned ts, float val)
 {
 	alignWindow(ts);
-
-	data[queue_index] = val;
-    queue_index++;
-    if(queue_index == MAX_WINDOW_SIZE)
-		queue_index = 0;
-	queue_ts = ts;
+	setValueForTs(ts, val);
 
 	for(int i=0; i<NUM_WINDOWS; i++)
 		insToMc((Window)i, val);
