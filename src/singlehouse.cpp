@@ -24,7 +24,8 @@ std::unordered_map<unsigned int,
 unsigned int house_id = 1;
 
 void forcastPlugLoad(unsigned int ts, unsigned int hh_id, unsigned int plug_id, float average_load, unsigned int slice) {
-	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(TIMESLICE_30S) + 2 * timeslice_lengths.at(slice);
+	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(slice) +
+			((ts % timeslice_lengths.at(slice))?2:1) * timeslice_lengths.at(slice);
 	float median = median_container[hh_id][plug_id][slice][forcast_ts % 86400].getMedian(), forcast;
 	if (median < 0)
 		forcast = average_load;
@@ -34,7 +35,8 @@ void forcastPlugLoad(unsigned int ts, unsigned int hh_id, unsigned int plug_id, 
 }
 
 void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
-	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(TIMESLICE_30S) + 2 * timeslice_lengths.at(slice);
+	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(slice) +
+			((ts % timeslice_lengths.at(slice))?2:1) * timeslice_lengths.at(slice);
 	float median = house_median_container[slice][forcast_ts % 86400].getMedian(), forcast;
 	if (median < 0)
 		forcast = average_load;
@@ -54,9 +56,10 @@ void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flu
 				house_median_container[slice.first][(last_timestamp-slice.second)%86400].insert(house_aggregate[slice.first].accumulated_load);
 			house_aggregate[slice.first].accumulated_load = 0;
 		}
-	} else
+	} else {
 		last_timestamp = boundary_ts;
-	house_aggregate[x].accumulated_load += load;
+		house_aggregate[x].accumulated_load += load;
+	}
 }
 
 void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsigned int household_id, bool flush = false) {
@@ -71,13 +74,13 @@ void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsi
 			}
 		}
 		processHouse(0,0,0,true);
-	} else
+	} else {
 		last_timestamp = boundary_ts;
 
-	if (household_aggregate.find(household_id) == household_aggregate.end())
-		household_aggregate[household_id] = initial_plug_state;
-	household_aggregate[household_id][x].accumulated_load += load;
-
+		if (household_aggregate.find(household_id) == household_aggregate.end())
+			household_aggregate[household_id] = initial_plug_state;
+		household_aggregate[household_id][x].accumulated_load += load;
+	}
 	//for testing
 /*	cout<<boundary_ts<< " slice " << x<<
 			" load " << load<<
