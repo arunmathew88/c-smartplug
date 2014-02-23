@@ -144,12 +144,12 @@ void SlidingMc::addNewBin(Window ws, int pos, Bin b)
 float SlidingMc::getValueForTs(unsigned ts)
 {
 	if(ts > queue_ts)
-	{
+	{cout<<ts<<" "<<queue_ts<<endl;
 		cout<<"asking for a value before even inserting it!"<<endl;
 		exit(-1);
 	}
 
-	return data[(-queue_ts+ts+queue_index-1) % MAX_WINDOW_SIZE];
+	return data[-queue_ts+ts+((unsigned)queue_index)];
 }
 
 void SlidingMc::setValueForTs(unsigned ts, float val)
@@ -214,7 +214,7 @@ void SlidingMc::alignWindow(unsigned ts)
 {
 	for(int i=0; i<NUM_WINDOWS; i++)
 	{
-		if(ts - queue_ts >= getWindowSize((Window)i))
+		if(ts >= queue_ts + getWindowSize((Window)i))
 		{
 			last_ts[i] = ts;
 			size[i] = 0;

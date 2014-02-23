@@ -51,8 +51,8 @@ int main()
 	delete[] array;
 
     SlidingMc *sm = new SlidingMc(1);
-    for(int i=4000; i>0; i--)
-        sm->insert(8100-i*2, i*2);
-    cout<<sm->getMedian(8200, WINDOW_1HR)<<endl;
+    for(int i=40000; i>0; i--)
+        sm->insert(81000-i*2, i);
+    cout<<sm->getMedian(81001, WINDOW_1HR)<<endl;
     delete sm;
 }

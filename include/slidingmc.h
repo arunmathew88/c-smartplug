@@ -50,8 +50,8 @@ class SlidingMc
   public:
 	SlidingMc(unsigned ts);
 	~SlidingMc();
-	float getMedian(unsigned int ts, Window ws);
-	void insert(unsigned int ts, float val);
+	float getMedian(unsigned ts, Window ws);
+	void insert(unsigned ts, float val);
 };
 
 #endif
