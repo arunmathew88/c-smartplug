@@ -7,7 +7,7 @@
 using namespace std;
 
 #define MAX_WINDOW_SIZE 24*4000
-#define MAX_BINS 10000
+#define MAX_BINS 100
 
 enum Window
 {
