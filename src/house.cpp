@@ -3,12 +3,14 @@
 #include <cstdio>
 #include <map>
 #include <vector>
+#include <tgmath.h>
 #include "zhelpers.hpp"
 #include "common.h"
 #include "mc.h"
 using namespace std;
 
 #define NUM_THREADS 10
+
 
 //global
 house_state state;
@@ -22,30 +24,35 @@ std::unordered_map<unsigned int,
 		>
 	>
 > median_container;
+
 std::unordered_map<unsigned int,
 	std::unordered_map<unsigned int, Mc>
 >house_median_container;
 
-unsigned int house_id = 1;
+
+unsigned int house_id;
+
 
 void forcastPlugLoad(unsigned int ts, unsigned int hh_id, unsigned int plug_id, float average_load, unsigned int slice) {
-	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(TIMESLICE_30S) + 2 * timeslice_lengths.at(slice);
+	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(slice) +
+			((ts % timeslice_lengths.at(slice))?2:1) * timeslice_lengths.at(slice);
 	float median = median_container[hh_id][plug_id][slice][forcast_ts % 86400].getMedian(), forcast;
 	if (median < 0)
 		forcast = average_load;
 	else
 		forcast = (average_load + median)/2;
-	printf("PLUG_FORCAST_%u_S %u %u,%u,%u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, hh_id, plug_id, average_load);
+	printf("PLUG_FORECAST_%u_S %u %u,%u,%u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, hh_id, plug_id, forcast);
 }
 
 void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
-	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(TIMESLICE_30S) + 2 * timeslice_lengths.at(slice);
+	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(slice) +
+			((ts % timeslice_lengths.at(slice))?2:1) * timeslice_lengths.at(slice);
 	float median = house_median_container[slice][forcast_ts % 86400].getMedian(), forcast;
 	if (median < 0)
 		forcast = average_load;
 	else
 		forcast = (average_load + median)/2;
-	printf("HOUSE_FORCAST_%u_S %u %u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, average_load);
+	printf("HOUSE_FORECAST_%u_S %u %u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, forcast);
 }
 
 void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flush = false) {
@@ -59,30 +66,34 @@ void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flu
 				house_median_container[slice.first][(last_timestamp-slice.second)%86400].insert(house_aggregate[slice.first].accumulated_load);
 			house_aggregate[slice.first].accumulated_load = 0;
 		}
-	} else
+	} else {
 		last_timestamp = boundary_ts;
-	house_aggregate[x].accumulated_load += load;
+		house_aggregate[x].accumulated_load += load;
+	}
 }
 
 void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsigned int household_id, bool flush = false) {
 
 	static unsigned int last_timestamp = boundary_ts;
-	if (flush) {
+	if (flush || last_timestamp < boundary_ts) {
 		for (auto& household:household_aggregate) {
 			for (auto& slice:timeslice_lengths) {
 				if (slice.first == TIMESLICE_30S) continue;
-				processHouse(last_timestamp, slice.first, household.second[slice.first].accumulated_load);
+				if (flush)
+					processHouse(last_timestamp, slice.first, household.second[slice.first].accumulated_load);
 				household.second[slice.first].accumulated_load = 0;
 			}
 		}
-		processHouse(0,0,0,true);
-	} else
+		if (flush)
+			processHouse(0,0,0,true);
+	}
+	if (!flush) {
 		last_timestamp = boundary_ts;
 
-	if (household_aggregate.find(household_id) == household_aggregate.end())
-		household_aggregate[household_id] = initial_plug_state;
-	household_aggregate[household_id][x].accumulated_load += load;
-
+		if (household_aggregate.find(household_id) == household_aggregate.end())
+			household_aggregate[household_id] = initial_plug_state;
+		household_aggregate[household_id][x].accumulated_load += load;
+	}
 	//for testing
 /*	cout<<boundary_ts<< " slice " << x<<
 			" load " << load<<
@@ -95,7 +106,7 @@ void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsi
 //float doProcessing(measurement *input) {	//for testing
 void doProcessing(measurement *input) {
 
-	if (input->property == '0') //ignore if the measurement is a work value
+	if (input->property == 0) //ignore if the measurement is a work value
 		return ;
 //		return 0; //for testing
 
@@ -200,10 +211,11 @@ void doProcessing(measurement *input) {
 	}
 }
 
+
 // arg: house_id broker_ip sync_port self_ip data_port
 int main(int argc, char const *argv[])
 {
-	string house_id, broker_ip, sync_port, self_ip, data_port;
+	string house_id_str, broker_ip, sync_port, self_ip, data_port;
 
 	if(argc < 6)
 	{
@@ -211,13 +223,14 @@ int main(int argc, char const *argv[])
 		exit(-1);
 	} else
 	{
-		house_id  = string(argv[1]);
+		house_id_str  = string(argv[1]);
+		house_id = atoi(house_id_str.c_str());
 		broker_ip = string(argv[2]);
 		sync_port = string(argv[3]);
 		self_ip   = string(argv[4]);
 		data_port = string(argv[5]);
 	}
-	cout<<"house running with id :"<<house_id<<endl;
+	cout<<"house running with id :"<<house_id_str<<endl;
 
 	// creating a zmq context
 	zmq::context_t context(NUM_THREADS);
@@ -231,7 +244,7 @@ int main(int argc, char const *argv[])
     syncclient.connect((string("tcp://") + broker_ip + string(":") + sync_port).c_str());
 
     // send a synchronization request
-    s_sendmore(syncclient, house_id);
+    s_sendmore(syncclient, house_id_str);
     s_send(syncclient, self_ip+string(":")+data_port);
 
     // wait for synchronization reply
@@ -241,7 +254,6 @@ int main(int argc, char const *argv[])
     while(true) {
         // read message contents
         zmq_recv(subscriber, m, sizeof(measurement), 0);
-        cout<<m->timestamp<<endl;
         doProcessing(m);
     }
     delete m;
