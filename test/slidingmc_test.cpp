@@ -26,6 +26,7 @@ class SlidingMcTest : public CppUnit::TestFixture
 	{
 		for(int i=1; i<4000; i++)
 			sm->insert(i, i);
+		cout<<sm->getMedian(4000, WINDOW_1HR)<<endl;
 		CPPUNIT_ASSERT(sm->getMedian(4000, WINDOW_1HR) == 2000);
 	}
 
