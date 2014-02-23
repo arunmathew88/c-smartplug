@@ -47,6 +47,7 @@ ifeq "$(wildcard $(LDIR) )" ""
 	cd $(LDIR)/zeromq-4.0.3 && ./configure && make && sudo make install && sudo ldconfig
 	cd $(IDIR)/ && rm -f zmq.hpp && wget https://raw2.github.com/zeromq/cppzmq/master/zmq.hpp
 	cd $(IDIR)/ && rm -f zhelpers.hpp && wget https://raw2.github.com/imatix/zguide/master/examples/C++/zhelpers.hpp
+	sudo apt-get install libcppunit-dev
 endif
 
 $(ODIR)/house: $(OBJ1)
