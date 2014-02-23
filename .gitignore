@@ -28,7 +28,10 @@ zhelpers.hpp
 
 # doc and priv files #
 #########################
-doc/*
 priv/*
 .*
 *.json
+*.log
+*.aux
+*.pdf
+*.gz
