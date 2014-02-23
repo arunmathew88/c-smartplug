@@ -149,7 +149,10 @@ float SlidingMc::getValueForTs(unsigned ts)
 		exit(-1);
 	}
 
-	return data[-queue_ts+ts+((unsigned)queue_index)];
+	int temp = -queue_ts+ts+((unsigned)queue_index);
+	if(temp < 0)
+		temp += MAX_WINDOW_SIZE;
+	return data[temp];
 }
 
 void SlidingMc::setValueForTs(unsigned ts, float val)
