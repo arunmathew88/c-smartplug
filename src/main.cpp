@@ -41,18 +41,18 @@ int main()
 	for (int count = 0; count < 100; ++count)
 		array[count] = count*2;
 
-	cout<<binarySearch(array, 100, 199)<<endl;
-	cout<<binarySearch(array, 100, 198)<<endl;
-	cout<<binarySearch(array, 100, 197)<<endl;
-	cout<<binarySearch(array, 50, 33)<<endl;
-	cout<<binarySearch(array, 30, 4)<<endl;
-	cout<<binarySearch(array, 100, 40)<<endl;
+	// cout<<binarySearch(array, 100, 199)<<endl;
+	// cout<<binarySearch(array, 100, 198)<<endl;
+	// cout<<binarySearch(array, 100, 197)<<endl;
+	// cout<<binarySearch(array, 50, 33)<<endl;
+	// cout<<binarySearch(array, 30, 4)<<endl;
+	// cout<<binarySearch(array, 100, 40)<<endl;
 
 	delete[] array;
 
-    // SlidingMc *sm = new SlidingMc(1);
-    // for(int i=1; i<4000; i++)
-    //     sm->insert(i, i);
-    // cout<<sm->getMedian(4000, WINDOW_1HR)<<endl;
-    // delete sm;
+    SlidingMc *sm = new SlidingMc(1);
+    for(int i=4000; i>0; i--)
+        sm->insert(8100-i*2, i*2);
+    cout<<sm->getMedian(8200, WINDOW_1HR)<<endl;
+    delete sm;
 }

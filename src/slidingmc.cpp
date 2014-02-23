@@ -10,10 +10,12 @@ SlidingMc::SlidingMc(unsigned ts)
 		num_bins[i] = 0;
 		bins[i] = new Bin[MAX_BINS+2];
 		bins[i] = &(bins[i][1]);
-		last_ts[i] = ts;
+		last_ts[i] = ts-1;
 	}
 
 	data = new float[MAX_WINDOW_SIZE];
+	for(int i=0; i<MAX_WINDOW_SIZE; i++)
+		data[i] = -1;
 	queue_index = 0;
 	queue_ts = ts-1;
 }
@@ -194,7 +196,7 @@ void SlidingMc::removeValueFromMc(Window ws, float val)
 	}
 }
 
-int getWindowSize(Window ws)
+unsigned getWindowSize(Window ws)
 {
 	switch(ws)
 	{
@@ -212,13 +214,21 @@ void SlidingMc::alignWindow(unsigned ts)
 {
 	for(int i=0; i<NUM_WINDOWS; i++)
 	{
-		while(last_ts[i] + getWindowSize((Window)i) <= ts)
+		if(ts - queue_ts >= getWindowSize((Window)i))
 		{
-			float temp = getValueForTs(last_ts[i]);
-			if(temp != -1)
-				removeValueFromMc((Window)i, temp);
+			last_ts[i] = ts;
+			size[i] = 0;
+			num_bins[i] = 0;
+		} else
+		{
+			while(last_ts[i] + getWindowSize((Window)i) <= ts)
+			{
+				float temp = getValueForTs(last_ts[i]);
+				if(temp != -1)
+					removeValueFromMc((Window)i, temp);
 
-			last_ts[i]++;
+				last_ts[i]++;
+			}
 		}
 	}
 }
