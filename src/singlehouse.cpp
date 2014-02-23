@@ -3,7 +3,8 @@
 #include <vector>
 #include <common.h>
 #include <mc.h>
-
+#include <slidingmc.h>
+#include <tgmath.h>
 
 //global
 house_state state;
@@ -21,7 +22,53 @@ std::unordered_map<unsigned int,
 	std::unordered_map<unsigned int, Mc>
 >house_median_container;
 
+std::unordered_map<unsigned int,
+	std::unordered_map<unsigned int, SlidingMc>
+> sliding_median_container;
+
+SlidingMc global_median_container;
+
 unsigned int house_id = 1;
+
+void doProcessing2(measurement *input) {
+	if (input->property !=1) return;
+	static float last_percentage[2] = {0};
+	float percentage, global_median;
+	unsigned int total_plugs = 0, outlier = 0;
+
+	sliding_median_container[input->household_id][input->plug_id].insert(input->timestamp,input->value);
+	global_median_container.insert(input->timestamp,input->value);
+	global_median = global_median_container.getMedian(input->timestamp, WINDOW_1HR);
+	for (auto& household:sliding_median_container)
+	for (auto& plug:household.second) {
+		float median = plug.second.getMedian(input->timestamp, WINDOW_1HR);
+		if ( median < 0) continue;
+		total_plugs++;
+		if (median > global_median) outlier++;
+	}
+	percentage = (float)outlier * 100 / total_plugs;
+	if (fabs(last_percentage[WINDOW_1HR] - percentage) > 0.5) {
+		printf("SLIDING_WINDOW_1HR %u,%u,%u,%f",input->timestamp - 60*60, input->timestamp,input->house_id, percentage);
+		last_percentage[WINDOW_1HR] = input->timestamp;
+	}
+
+	total_plugs = 0, outlier = 0;
+	global_median = global_median_container.getMedian(input->timestamp, WINDOW_24HR);
+	for (auto& household:sliding_median_container)
+	for (auto& plug:household.second) {
+		float median = plug.second.getMedian(input->timestamp, WINDOW_24HR);
+		if ( median < 0) continue;
+		total_plugs++;
+		if (median > global_median) outlier++;
+	}
+	percentage = (float)outlier * 100 / total_plugs;
+	if (fabs(last_percentage[WINDOW_24HR] - percentage) > 0.5) {
+		printf("SLIDING_WINDOW_24HR %u,%u,%u,%f",input->timestamp - 24*60*60, input->timestamp,input->house_id, percentage);
+		last_percentage[WINDOW_24HR] = input->timestamp;
+	}
+
+}
+
 
 void forcastPlugLoad(unsigned int ts, unsigned int hh_id, unsigned int plug_id, float average_load, unsigned int slice) {
 	unsigned int forcast_ts = ts - ts % timeslice_lengths.at(slice) +
