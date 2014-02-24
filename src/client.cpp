@@ -50,10 +50,21 @@ int main(int argc, char *argv[])
     measurement *m = new measurement;
     while ( (n = read(sockfd, m, sizeof(measurement))) > 0)
     {
-        //doProcessing(m);
-      std::cout <<m->id <<std::endl;
-//      c++;
-//      sleep(1);
+       if(n == 28)
+        {
+            cout<<m->timestamp<<endl;
+        }
+        else if(n < 28)
+        {
+            char b[28];
+            memcpy(b, &m, n);
+            int n2 = read(sockfd, m, 28 - n);
+            if(n2 == 28 - n)
+            {
+                memcpy(b+n, &m, n2);
+                cout<<m->timestamp<<endl;
+            }
+        }
     }
 
     if(n < 0)
