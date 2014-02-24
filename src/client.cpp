@@ -7,36 +7,34 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <arpa/inet.h> 
-
+#include <arpa/inet.h>
 #include <iostream>
 #include <common.h>
-
-#include "singlehouse.cpp"
+using namespace std;
 
 int main(int argc, char *argv[])
 {
     int sockfd = 0, n = 0;
     char recvBuff[1024];
-    struct sockaddr_in serv_addr; 
+    struct sockaddr_in serv_addr;
 
     if(argc != 2)
     {
         printf("\n Usage: %s <ip of server> \n",argv[0]);
         return 1;
-    } 
+    }
 
     memset(recvBuff, '0',sizeof(recvBuff));
     if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("\n Error : Could not create socket \n");
         return 1;
-    } 
+    }
 
-    memset(&serv_addr, '0', sizeof(serv_addr)); 
+    memset(&serv_addr, '0', sizeof(serv_addr));
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(5000); 
+    serv_addr.sin_port = htons(5000);
 
     if(inet_pton(AF_INET, argv[1], &serv_addr.sin_addr)<=0)
     {
@@ -55,19 +53,17 @@ int main(int argc, char *argv[])
     {
     	if(n == 29)
         {
-            doProcessing(m);
         }
         else if(n < 29)
         {
             char b[29];
             memcpy(b, &m, n);
-            n2 = read(sockfd, m, 29 - n);
+            int n2 = read(sockfd, m, 29 - n);
             if(n2 == 29 - n)
             {
                 memcpy(b+n, &m, n2);
                 m = new measurement;
                 memcpy(m, b, sizeof(m));
-                doProcessing(m);
             }
         }
     }

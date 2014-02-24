@@ -5,25 +5,30 @@
 
 #include "../src/singlehouse.cpp"
 
-measurement event(unsigned int ts, float value, unsigned char prop, unsigned int p_id, unsigned int hh_id) {
+measurement event(unsigned int ts, float value, unsigned char prop, unsigned int p_id, unsigned int hh_id)
+{
 	measurement m = { 0, ts, value, prop, p_id, hh_id, 0};
 	return m;
 }
 
-class HouseProcessTest : public CppUnit::TestFixture  {
-protected:
-public:
-	void setUp() {
-
+class HouseProcessTest : public CppUnit::TestFixture
+{
+  public:
+	void setUp()
+	{
 	}
-	void tearDown() {
+
+	void tearDown()
+	{
 		state.clear();
 		household_aggregate.clear();
 		house_aggregate.clear();
 		median_container.clear();
 		house_median_container.clear();
 	}
-	void testInitial() {
+
+	void testInitial()
+	{
 		CPPUNIT_ASSERT(state.size() == 0);
 		CPPUNIT_ASSERT(household_aggregate.size() == 0);
 		CPPUNIT_ASSERT(house_aggregate.size() == 0);
@@ -32,7 +37,8 @@ public:
 	}
 
 	//for testing state changes of one non-boundary event for one household
-	void testNonBoundaryFirstEvent() {
+	void testNonBoundaryFirstEvent()
+	{
 		measurement m = event(1, 1.5, 1, 0, 0);
 		doProcessing(&m);
 		CPPUNIT_ASSERT(state.size() == 1);
@@ -50,7 +56,8 @@ public:
 	}
 
 	//for testing state changes of one boundary event for one household
-	void test30SBoundaryFirstEvent() {
+	void test30SBoundaryFirstEvent()
+	{
 		measurement m = event(30, 1.5, 1, 0, 12);
 		doProcessing(&m);
 		CPPUNIT_ASSERT(state.size() == 1);
@@ -74,9 +81,11 @@ public:
 	}
 
 	//for testing state changes of one non-boundary event for 29 households
-	void testNonBoundaryFirstEvents() {
+	void testNonBoundaryFirstEvents()
+	{
 		measurement m;
-		for (int i=1; i<30; i++) {
+		for (int i=1; i<30; i++)
+		{
 			m = event(i, i, 1, i, i);
 			doProcessing(&m);
 		}
@@ -89,10 +98,12 @@ public:
 	}
 
 	//for testing state changes of 29 non-boundary event for one household same plug
-	void testNonBoundaryEvents() {
+	void testNonBoundaryEvents()
+	{
 		measurement m;
 		float sum = 0;
-		for (int i=1; i<30; i++) {
+		for (int i=1; i<30; i++)
+		{
 			m = event(i, i, 1, 0, 0);
 			sum += i;
 			doProcessing(&m);
@@ -112,7 +123,8 @@ public:
 	}
 
 	//for testing state changes of one boundary event for one household
-	void test30SPrePostBoundaryEvents() {
+	void test30SPrePostBoundaryEvents()
+	{
 		measurement m = event(29, 1.5, 1, 0, 12);
 		measurement m1 = event(31, 2.5, 1, 0, 13);
 
@@ -141,7 +153,8 @@ public:
 	}
 
 	//for testing state changes of one boundary event for one household
-	void test60SPrePostBoundaryEvents() {
+	void test60SPrePostBoundaryEvents()
+	{
 		measurement m = event(59, 1.5, 1, 0, 12);
 		measurement m1 = event(61, 2.5, 1, 0, 13);
 
@@ -168,8 +181,10 @@ public:
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, median_container[m.household_id][m.plug_id][TIMESLICE_1M][0].getMedian(), 0.00001);
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, house_median_container[TIMESLICE_1M][0].getMedian(), 0.00001);
 	}
+
 	//for testing state changes of one boundary event for one household
-	void test300SPrePostBoundaryEvents() {
+	void test300SPrePostBoundaryEvents()
+	{
 		measurement m = event(299, 1.5, 1, 0, 12);
 		measurement m1 = event(301, 2.5, 1, 0, 13);
 
@@ -186,8 +201,10 @@ public:
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, median_container[m.household_id][m.plug_id][TIMESLICE_5M][0].getMedian(), 0.00001);
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, house_median_container[TIMESLICE_5M][0].getMedian(), 0.00001);
 	}
+
 	//for testing state changes of one boundary event for one household
-	void test900SPrePostBoundaryEvents() {
+	void test900SPrePostBoundaryEvents()
+	{
 		measurement m = event(899, 1.5, 1, 0, 12);
 		measurement m1 = event(901, 2.5, 1, 0, 13);
 
@@ -206,8 +223,10 @@ public:
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, median_container[m.household_id][m.plug_id][TIMESLICE_15M][0].getMedian(), 0.00001);
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, house_median_container[TIMESLICE_15M][0].getMedian(), 0.00001);
 	}
+
 	//for testing state changes of one boundary event for one household
-	void test3600SPrePostBoundaryEvents() {
+	void test3600SPrePostBoundaryEvents()
+	{
 		measurement m = event(3599, 1.5, 1, 0, 12);
 		measurement m1 = event(3601, 2.5, 1, 0, 13);
 
@@ -228,8 +247,10 @@ public:
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, median_container[m.household_id][m.plug_id][TIMESLICE_60M][0].getMedian(), 0.00001);
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, house_median_container[TIMESLICE_60M][0].getMedian(), 0.00001);
 	}
+
 	//for testing state changes of one boundary event for one household
-	void test7200SPrePostBoundaryEvents() {
+	void test7200SPrePostBoundaryEvents()
+	{
 		measurement m = event(7199, 1.5, 1, 0, 12);
 		measurement m1 = event(7201, 2.5, 1, 0, 13);
 
@@ -253,15 +274,7 @@ public:
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, house_median_container[TIMESLICE_120M][0].getMedian(), 0.00001);
 	}
 
-	/*	static CppUnit::Test *suite()
-	{
-		CppUnit::TestSuite *suiteOfTests = new CppUnit::TestSuite( "ComplexNumberTest" );
-		suiteOfTests->addTest( new CppUnit::TestCaller<HouseProcessTest>(
-                "testIntitial",
-                &HouseProcessTest::testInitial ) );
-		return suiteOfTests;
-	}
-	*/
+
 	CPPUNIT_TEST_SUITE( HouseProcessTest );
 	CPPUNIT_TEST( testInitial );
 	CPPUNIT_TEST( testNonBoundaryFirstEvent );
@@ -279,12 +292,11 @@ public:
 
 CPPUNIT_TEST_SUITE_REGISTRATION( HouseProcessTest );
 
-
 int main( int argc, char **argv)
 {
   CppUnit::TextUi::TestRunner runner;
   CppUnit::TestFactoryRegistry &registry = CppUnit::TestFactoryRegistry::getRegistry();
   runner.addTest( registry.makeTest() );
-  bool wasSucessful = runner.run( "", false );
+  bool wasSucessful = runner.run("", true);
   return wasSucessful;
 }

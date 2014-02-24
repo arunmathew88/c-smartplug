@@ -12,7 +12,6 @@ float Mc::getMedian()
 {
 	if(size == 0)
 	{
-//		cout<<"Cannot find median for empty container!"<<endl;
 		return (-1);
 	}
 
