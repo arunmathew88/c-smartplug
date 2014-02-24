@@ -4,18 +4,32 @@
 #include "zhelpers.hpp"
 using namespace std;
 
-#define SUBSCRIBERS_EXPECTED 40
 #define NUM_THREADS 10
 #define SYNC_PORT 5556
-#define SLEEP_TIME 1000
+#define SLEEP_TIME 10
 
-int main()
+// arg: #houses datafile
+int main(int argc, char const *argv[])
 {
+    int subscribers_expected;
+    string data_file;
+
+    if(argc < 3)
+    {
+        cout<<"not enough arguments!"<<endl;
+        exit(-1);
+    } else
+    {
+        subscribers_expected  = atoi(argv[1]);
+        data_file = string(argv[2]);
+    }
+
+    // creating a zmq context
     zmq::context_t context(NUM_THREADS);
 
     // socket to talk to clients
-    zmq::socket_t **broker = new zmq::socket_t*[SUBSCRIBERS_EXPECTED];
-    for(int i=0; i<SUBSCRIBERS_EXPECTED; i++)
+    zmq::socket_t **broker = new zmq::socket_t*[subscribers_expected];
+    for(int i=0; i<subscribers_expected; i++)
         broker[i] = new zmq::socket_t(context, ZMQ_PUSH);
 
     // socket to receive address and port to connect to & synchronization
@@ -24,18 +38,18 @@ int main()
 
     // get synchronization from subscribers
     int subscribers = 0;
-    while(subscribers < SUBSCRIBERS_EXPECTED)
+    while(subscribers < subscribers_expected)
     {
         // wait for synchronization request, first [house_id] then [ip:port]
         int house_id = atoi(s_recv(syncservice).c_str());
         string client = s_recv(syncservice);
 
-        if(house_id < SUBSCRIBERS_EXPECTED && house_id >= 0)
+        if(house_id < subscribers_expected && house_id >= 0)
             broker[house_id]->connect((string("tcp://") + client).c_str());
         else
         {
             cout<<"error occurred: wrong house id!"<<endl;
-            for(int i=0; i<SUBSCRIBERS_EXPECTED; i++)
+            for(int i=0; i<subscribers_expected; i++)
                 delete broker[i];
             delete broker;
             exit(-1);
@@ -46,7 +60,7 @@ int main()
     }
 
     // read the data stream from file
-    ifstream file("priv/temp.csv");
+    ifstream file(data_file);
     string buffer;
     unsigned long id;
     unsigned int ts, plug_id, hh_id, house_id;
@@ -68,7 +82,7 @@ int main()
 
     // clean up
     sleep(SLEEP_TIME);
-    for(int i=0; i<SUBSCRIBERS_EXPECTED; i++)
+    for(int i=0; i<subscribers_expected; i++)
         delete broker[i];
     delete broker;
     return 0;
