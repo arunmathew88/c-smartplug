@@ -42,27 +42,40 @@ int main(int argc, char *argv[])
     {
         printf("\n inet_pton error occured\n");
         return 1;
-    } 
+    }
 
     if( connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
        printf("\n Error : Connect Failed \n");
        return 1;
-    } 
+    }
     unsigned int c=0;
     measurement *m = new measurement;
     while ( (n = read(sockfd, m, sizeof(measurement))) > 0)
     {
-    	doProcessing(m);
-//    	std::cout <<m->id <<std::endl;
-//    	c++;
-//    	sleep(1);
-    } 
+    	if(n == 29)
+        {
+            doProcessing(m);
+        }
+        else if(n < 29)
+        {
+            char b[29];
+            memcpy(b, &m, n);
+            n2 = read(sockfd, m, 29 - n);
+            if(n2 == 29 - n)
+            {
+                memcpy(b+n, &m, n2);
+                m = new measurement;
+                memcpy(m, b, sizeof(m));
+                doProcessing(m);
+            }
+        }
+    }
 
     if(n < 0)
     {
         printf("\n Read error \n");
-    } 
+    }
 
     return 0;
 }
