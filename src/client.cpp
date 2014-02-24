@@ -1,3 +1,4 @@
+#include <iostream>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
@@ -8,9 +9,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
-#include <iostream>
-#include <common.h>
-using namespace std;
+#include "common.h"
 
 int main(int argc, char *argv[])
 {
@@ -51,21 +50,10 @@ int main(int argc, char *argv[])
     measurement *m = new measurement;
     while ( (n = read(sockfd, m, sizeof(measurement))) > 0)
     {
-    	if(n == 29)
-        {
-        }
-        else if(n < 29)
-        {
-            char b[29];
-            memcpy(b, &m, n);
-            int n2 = read(sockfd, m, 29 - n);
-            if(n2 == 29 - n)
-            {
-                memcpy(b+n, &m, n2);
-                m = new measurement;
-                memcpy(m, b, sizeof(m));
-            }
-        }
+        //doProcessing(m);
+      std::cout <<m->id <<std::endl;
+//      c++;
+//      sleep(1);
     }
 
     if(n < 0)

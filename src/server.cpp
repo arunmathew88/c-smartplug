@@ -13,7 +13,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-#include "common.h"
+#include <common.h>
 
 int main(int argc, char *argv[])
 {
@@ -38,31 +38,31 @@ int main(int argc, char *argv[])
     {
         unsigned int c=1;
 
-    	std::ifstream ifile("/home/arunmathew/Downloads/sorted100M.csv");
-//    	std::ifstream ifile("/home/arunmathew/Downloads/sorted10000e.csv");
-    	std::string str;
-    	measurement m;
+        std::ifstream ifile("priv/temp.csv");
+//      std::ifstream ifile("/home/arunmathew/Downloads/sorted10000e.csv");
+        std::string str;
+        measurement m;
 
-    	connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
+        connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
 
         ticks = time(NULL);
         while (!ifile.eof()) {
-        	str.clear();
-        	getline(ifile, str);
-        	if (ifile.eof() && !str.length()) break ;
-        	size_t pos=0;
-        	while ((pos = str.find_first_of(',',pos))!= str.npos)
-        		str.replace(pos,1,1,' ');
+            str.clear();
+            getline(ifile, str);
+            if (ifile.eof() && !str.length()) break ;
+            size_t pos=0;
+            while ((pos = str.find_first_of(',',pos))!= str.npos)
+                str.replace(pos,1,1,' ');
             std::stringstream ss(str);
             ss >> m.id >> m.timestamp >> m.value >> m.property >> m.plug_id >> m.household_id >> m.house_id;
-//        	std::cout <<m.id <<std::endl;
-//	        snprintf(sendBuff, sizeof(sendBuff), "%u %.24s\r\n", c, ctime(&ticks));
-//	        memcpy(sendBuff, &m, sizeof(m));
-	        write(connfd, &m, sizeof(m));
-//	        sleep(1);
-//	        printf("wrote %u\n", c);
-	        c++;
-	}
+//          std::cout <<m.id <<std::endl;
+//          snprintf(sendBuff, sizeof(sendBuff), "%u %.24s\r\n", c, ctime(&ticks));
+//          memcpy(sendBuff, &m, sizeof(m));
+            write(connfd, &m, sizeof(m));
+//          sleep(1);
+//          printf("wrote %u\n", c);
+            c++;
+    }
         close(connfd);
 //        sleep(1);
      }
