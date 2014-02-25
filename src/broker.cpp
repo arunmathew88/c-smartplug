@@ -78,8 +78,7 @@ int main(int argc, char *argv[])
         subscribers++;
     }
 
-    ifstream ifile(data_file);
-    string buffer;
+    FILE * ifile = fopen(data_file.c_str(), "r");
     measurement m;
     unsigned int ts, plug_id, hh_id;
     float val;
@@ -87,20 +86,21 @@ int main(int argc, char *argv[])
 
     unsigned long ptime = time(NULL), ctime, count=0, stat=atol(argv[3]);
 
-    while(!ifile.eof())
+    while(!feof(ifile))
     {
-        if(sscanf(buffer.c_str(), "%lu,%u,%f,%c,%u,%u,%u", &id, &ts, &val, &prop, &plug_id, &hh_id, &house_id) < 7)
+        if(fscanf(ifile, "%lu,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &house_id) < 7)
             continue;
-        measurement message(ts, val, prop, plug_id, hh_id);
 
         // send the message
-        write(con_map[house_id], &m, sizeof(m));
-
-        count++;
+        if ( house_id < subscribers )
+        {
+        	write(con_map[house_id], &m, sizeof(m));
+        	count++;
+        }
         if(count == stat)
         {
             ctime = time(NULL);
-            cerr<<"Througput = "<<count/(ctime-ptime+1)<<endl;
+            cerr<<"Throughput = "<<count/(ctime-ptime+1)<<endl;
             ptime = ctime;
             count = 0;
         }

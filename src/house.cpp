@@ -1,5 +1,6 @@
 #include <iostream>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <netdb.h>
@@ -106,10 +107,12 @@ void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsi
 //float doProcessing(measurement *input) {  //for testing
 void doProcessing(measurement *input) {
 
-    if (input->property == 0) //ignore if the measurement is a work value
+    if (input->property == '0') //ignore if the measurement is a work value
         return ;
 //      return 0; //for testing
 
+    static timeval ptime = {0};
+    timeval ctime;
     unsigned int modulo = input->timestamp % timeslice_lengths.at(TIMESLICE_30S);
     static unsigned int last_timestamp = input->timestamp -((modulo == 0)? timeslice_lengths.at(TIMESLICE_30S) : modulo);
 
@@ -169,6 +172,8 @@ void doProcessing(measurement *input) {
 
         }
         processHouseHold(0,0,0,0,true);
+        gettimeofday(&ctime, NULL);
+        std::cerr << "Latency = " <<ctime.tv_usec - ptime.tv_usec<< std::endl;
     }
 
     plug_state &p_state = state[input->household_id][input->plug_id];
@@ -209,6 +214,7 @@ void doProcessing(measurement *input) {
         p_state[TIMESLICE_30S].last_timestamp = input->timestamp -
                 ((modulo == 0)? timeslice_lengths.at(TIMESLICE_30S) : modulo);
     }
+    gettimeofday(&ptime, NULL);
 }
 
 // arg: house_id broker_ip port
