@@ -173,7 +173,7 @@ void doProcessing(measurement *input) {
         }
         processHouseHold(0,0,0,0,true);
         gettimeofday(&ctime, NULL);
-        std::cerr << "Latency = " <<ctime.tv_usec - ptime.tv_usec<< std::endl;
+        std::cerr << "Latency = " << (ctime.tv_sec - ptime.tv_sec)*1000000 + ctime.tv_usec - ptime.tv_usec<< std::endl;
     }
 
     plug_state &p_state = state[input->household_id][input->plug_id];
