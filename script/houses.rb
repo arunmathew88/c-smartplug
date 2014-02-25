@@ -1,5 +1,5 @@
 port = 5556
 
-(0..39).each { |house|
-	system("./bin/house #{house} 10.105.3.108 #{port} > #{house}.out &")
+((ARGV[0].to_i)..(ARGV[1].to_i)).each { |house|
+	system("./bin/house #{house} #{ARGV[2]} #{port} > #{house}.out &")
 }

@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     while(subscribers < subscribers_expected)
     {
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
-        if(n = read(connfd, &house_id, sizeof(int)) > 0)
+        if((n = read(connfd, &house_id, sizeof(int))) > 0)
         {
             if(house_id < subscribers_expected && house_id >= 0)
             {
@@ -80,15 +80,12 @@ int main(int argc, char *argv[])
 
     FILE * ifile = fopen(data_file.c_str(), "r");
     measurement m;
-    unsigned int ts, plug_id, hh_id;
-    float val;
-    char prop;
 
     unsigned long ptime = time(NULL), ctime, count=0, stat=atol(argv[3]);
 
     while(!feof(ifile))
     {
-        if(fscanf(ifile, "%lu,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &house_id) < 7)
+        if(fscanf(ifile, "%u,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &house_id) < 7)
             continue;
 
         // send the message

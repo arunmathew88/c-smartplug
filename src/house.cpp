@@ -236,7 +236,8 @@ int main(int argc, char *argv[])
     }
     cout<<"house running with id :"<<house_id_str<<endl;
 
-    int sockfd = 0, n = 0;
+    int sockfd = 0;
+    unsigned n = 0;
     char recv_buff[1024];
     struct sockaddr_in serv_addr;
 
@@ -277,7 +278,7 @@ int main(int argc, char *argv[])
             char b[sizeof(measurement)];
             memcpy(b, &m, n);
 
-            int nrest = read(sockfd, m, sizeof(measurement) - n);
+            unsigned nrest = read(sockfd, m, sizeof(measurement) - n);
             if(nrest == sizeof(measurement) - n)
             {
                 memcpy(b+n, &m, nrest);cout<<m->timestamp<<endl;
