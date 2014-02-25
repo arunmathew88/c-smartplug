@@ -13,17 +13,18 @@
 #include <fstream>
 #include <string>
 #include "common.h"
+#include <cstdio>
 using namespace std;
 
 #define SYNC_PORT 5556
 
-// arg: #houses datafile
+// arg: #houses datafile freq
 int main(int argc, char *argv[])
 {
     int subscribers_expected;
     string data_file;
 
-    if(argc < 3)
+    if(argc < 4)
     {
         cout<<"not enough arguments!"<<endl;
         exit(-1);
@@ -80,22 +81,29 @@ int main(int argc, char *argv[])
     ifstream ifile(data_file);
     string buffer;
     measurement m;
+    unsigned int ts, plug_id, hh_id;
+    float val;
+    char prop;
+
+    unsigned long ptime = time(NULL), ctime, count=0, stat=atol(argv[3]);
 
     while(!ifile.eof())
     {
-        buffer.clear();
-        getline(ifile, buffer);
-        if(ifile.eof() && !buffer.length())
-            break;
+        if(sscanf(buffer.c_str(), "%lu,%u,%f,%c,%u,%u,%u", &id, &ts, &val, &prop, &plug_id, &hh_id, &house_id) < 7)
+            continue;
+        measurement message(ts, val, prop, plug_id, hh_id);
 
-        size_t pos = 0;
-        while((pos = buffer.find_first_of(',',pos)) != buffer.npos)
-            buffer.replace(pos, 1, 1, ' ');
-
-        stringstream ss(buffer);
-        ss >> id >> m.timestamp >> m.value >> m.property >> m.plug_id >> m.household_id >> house_id;
-
+        // send the message
         write(con_map[house_id], &m, sizeof(m));
+
+        count++;
+        if(count == stat)
+        {
+            ctime = time(NULL);
+            cerr<<"Througput = "<<count/(ctime-ptime+1)<<endl;
+            ptime = ctime;
+            count = 0;
+        }
     }
 
 

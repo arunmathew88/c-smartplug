@@ -215,7 +215,7 @@ void doProcessing(measurement *input) {
 int main(int argc, char *argv[])
 {
     string house_id_str, broker_ip;
-    int house_id, port;
+    int port;
 
     if(argc < 4)
     {
