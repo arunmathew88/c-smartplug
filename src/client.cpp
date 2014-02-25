@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
     }
 
     // informing about the house id to the broker process
-    cout<<write(sockfd, &house_id, sizeof(house_id))<<endl;
+    write(sockfd, &house_id, sizeof(house_id));
 
     measurement *m = new measurement;
     while((n = read(sockfd, m, sizeof(measurement))) > 0)

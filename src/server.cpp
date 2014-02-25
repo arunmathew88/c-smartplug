@@ -60,17 +60,8 @@ int main(int argc, char *argv[])
     while(subscribers < subscribers_expected)
     {
         connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
-        while(n = read(listenfd, &house_id, sizeof(int)) > 0)
+        if(n = read(connfd, &house_id, sizeof(int)) > 0)
         {
-            if(n != 4)
-            {
-                cout<<n<<endl;
-                cout<<"I don't know what to do? :P"<<endl;
-                delete[] con_map;
-                close(listenfd);
-                exit(-1);
-            }
-
             if(house_id < subscribers_expected && house_id >= 0)
             {
                 con_map[house_id] = connfd;
@@ -81,8 +72,6 @@ int main(int argc, char *argv[])
                 close(listenfd);
                 exit(-1);
             }
-
-            break;
         }
 
         subscribers++;
@@ -106,8 +95,7 @@ int main(int argc, char *argv[])
         stringstream ss(buffer);
         ss >> id >> m.timestamp >> m.value >> m.property >> m.plug_id >> m.household_id >> house_id;
 
-        write(connfd, &m, sizeof(m));
-        cout<<id<<endl;
+        write(con_map[house_id], &m, sizeof(m));
     }
 
 
