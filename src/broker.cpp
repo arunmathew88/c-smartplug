@@ -6,7 +6,7 @@ using namespace std;
 
 #define NUM_THREADS 10
 #define SYNC_PORT 5556
-#define SLEEP_TIME 1
+#define SLEEP_TIME 10
 
 // arg: #houses datafile
 int main(int argc, char const *argv[])
@@ -81,7 +81,7 @@ int main(int argc, char const *argv[])
 	count++;
 	if (count == stat) {
 	    ctime = time(NULL);
-	    std::cout<<ctime-ptime<<endl;
+	    std::err<<"Througput = "<<count/(ctime-ptime+1)<<std::endl;
 	    ptime = ctime; 
 	    count = 0;
 	}
