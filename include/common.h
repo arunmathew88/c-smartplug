@@ -6,13 +6,11 @@
 using namespace std;
 
 typedef struct {
-	unsigned long	id;
 	unsigned int	timestamp;
 	float			value;
 	unsigned char	property;
 	unsigned int	plug_id;
 	unsigned int	household_id;
-	unsigned int	house_id;
 } measurement;
 
 typedef struct  {
