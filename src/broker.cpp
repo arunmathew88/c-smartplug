@@ -6,7 +6,7 @@ using namespace std;
 
 #define NUM_THREADS 10
 #define SYNC_PORT 5556
-#define SLEEP_TIME 10
+#define SLEEP_TIME 1
 
 // arg: #houses datafile
 int main(int argc, char const *argv[])
@@ -14,7 +14,7 @@ int main(int argc, char const *argv[])
     int subscribers_expected;
     string data_file;
 
-    if(argc < 3)
+    if(argc < 4)
     {
         cout<<"not enough arguments!"<<endl;
         exit(-1);
@@ -67,15 +67,24 @@ int main(int argc, char const *argv[])
     float val;
     char prop;
 
+    unsigned long ptime = time(NULL), ctime, count=0, stat=atol(argv[3]);
+
     // @todo what if something is wrong with the message read from file
     while(getline(file, buffer))
     {
         if(sscanf(buffer.c_str(), "%lu,%u,%f,%c,%u,%u,%u", &id, &ts, &val, &prop, &plug_id, &hh_id, &house_id) < 7)
             continue;
         measurement message(ts, val, prop, plug_id, hh_id);
-
+//std::cout<<id<<std::endl;
         // send the message
         zmq_send(*broker[house_id], &message, sizeof(measurement), 0);
+	count++;
+	if (count == stat) {
+	    ctime = time(NULL);
+	    std::cout<<ctime-ptime<<endl;
+	    ptime = ctime; 
+	    count = 0;
+	}
     }
 
     // @todo end of communication
