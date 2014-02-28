@@ -12,11 +12,11 @@ TDIR = test
 LIBS = -lm -lpthread -std=c++0x
 
 # header files => .cpp files
-_DEPS = mc.h common.h
+_DEPS = slidingmc.h common.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 # object files
-_OBJ1 = mc.o query2.o
+_OBJ1 = slidingmc.o query2.o
 OBJ1 = $(patsubst %,$(ODIR)/%,$(_OBJ1))
 
 _OBJ2 = broker.o

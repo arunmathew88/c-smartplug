@@ -11,23 +11,41 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include "common.h"
-#include "mc.h"
+#include "slidingmc.h"
 using namespace std;
 
 #define NUM_HOUSE 40
 #define NUM_PLUGS 2125
 #define MAX_SIZE (2125*24*3600)
 
-#define WINDOW_1HR (3600)
-#define WINDOW_24HR (24*3600)
+enum Window
+{
+    WINDOW_1HR = 0,
+    WINDOW_24HR,
+    NUM_WINDOWS
+};
+
+unsigned getWindowSize(Window ws)
+{
+    switch(ws)
+    {
+        case WINDOW_1HR:
+            return 60*60;
+        case WINDOW_24HR:
+            return 24*3600;
+        default:
+            cout<<"error occured!"<<endl;
+            exit(-1);
+    }
+}
 
 measurement *data = new measurement[MAX_SIZE];
-unordered_map<unsigned, unordered_map<unsigned, Mc> > mc[NUM_HOUSE];
-Mc global_median;
+unordered_map<unsigned, unordered_map<unsigned, SlidingMc> > mc[NUM_HOUSE];
+SlidingMc global_median;
 int num_percentage_more = 0;
 int current_index = 0;
 int hr_begin = 0;
-Mc msc;
+SlidingMc msc;
 
 void solveQuery2(measurement *m)
 {
