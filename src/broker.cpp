@@ -16,25 +16,23 @@
 #include <cstdio>
 using namespace std;
 
-#define SYNC_PORT 5556
-
-// arg: #houses datafile freq
+// arg: port, datafile
 int main(int argc, char *argv[])
 {
-    int subscribers_expected;
     string data_file;
+    int port;
 
-    if(argc < 4)
+    if(argc < 3)
     {
         cout<<"not enough arguments!"<<endl;
         exit(-1);
     } else
     {
-        subscribers_expected  = atoi(argv[1]);
+        port = atoi(argv[1]);
         data_file = string(argv[2]);
     }
 
-    int listenfd=0, connfd=0, n=0;
+    int listenfd=0, connfd=0;
     struct sockaddr_in serv_addr;
     char send_buffer[1025];
 
@@ -44,68 +42,27 @@ int main(int argc, char *argv[])
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(SYNC_PORT);
+    serv_addr.sin_port = htons(port);
 
     // listening on the socket
     bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-    listen(listenfd, subscribers_expected);
-
-    int *con_map;
-    con_map = new int[subscribers_expected];
+    listen(listenfd, 2);
 
     unsigned id;
-    int house_id;
-
-    // get synchronization from subscribers
-    int subscribers = 0;
-    while(subscribers < subscribers_expected)
-    {
-        connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
-        if((n = read(connfd, &house_id, sizeof(int))) > 0)
-        {
-            if(house_id < subscribers_expected && house_id >= 0)
-            {
-                con_map[house_id] = connfd;
-            } else
-            {
-                cout<<"error occurred: wrong house id!"<<endl;
-                delete[] con_map;
-                close(listenfd);
-                exit(-1);
-            }
-        }
-
-        subscribers++;
-    }
+    connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
 
     FILE * ifile = fopen(data_file.c_str(), "r");
     measurement m;
 
-    unsigned long ptime = time(NULL), ctime, count=0, stat=atol(argv[3]);
-
     while(!feof(ifile))
     {
-        if(fscanf(ifile, "%u,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &house_id) < 7)
+        if(fscanf(ifile, "%u,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &m.house_id) < 7)
             continue;
 
         // send the message
-        if ( house_id < subscribers )
-        {
-        	write(con_map[house_id], &m, sizeof(m));
-        	count++;
-        }
-        if(count == stat)
-        {
-            ctime = time(NULL);
-            cerr<<"Throughput = "<<count/(ctime-ptime+1)<<endl;
-            ptime = ctime;
-            count = 0;
-        }
+        write(connfd, &m, sizeof(m));
     }
 
-
-    for(int i=0; i<subscribers_expected; i++)
-        close(con_map[i]);
-    delete[] con_map;
     close(listenfd);
+    close(connfd);
 }

@@ -16,38 +16,25 @@ _DEPS = mc.h common.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 # object files
-_OBJ1 = mc.o house.o
+_OBJ1 = mc.o query2.o
 OBJ1 = $(patsubst %,$(ODIR)/%,$(_OBJ1))
 
 _OBJ2 = broker.o
 OBJ2 = $(patsubst %,$(ODIR)/%,$(_OBJ2))
 
-_TOBJ = singlehouse_test.o
-TOBJ = $(patsubst %,$(ODIR)/%,$(_TOBJ))
-
-$(ODIR)/%_test.o: $(TDIR)/%_test.cpp $(DEPS)
-	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
-
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $<
 
-all: dir $(ODIR)/house $(ODIR)/broker
-
-socket: dir
-	g++ $(LIBS) -I$(IDIR) $(SDIR)/client.cpp -o $(ODIR)/client
-	g++ $(LIBS) -I$(IDIR) $(SDIR)/broker.cpp -o $(ODIR)/broker
+all: dir $(ODIR)/query2 $(ODIR)/broker
 
 dir:
 	mkdir -p $(ODIR)
 
-$(ODIR)/house: $(OBJ1)
+$(ODIR)/query2: $(OBJ1)
 	$(CC) -I$(IDIR) -o $@ $^ $(PROFILE) $(LIBS)
 
 $(ODIR)/broker: $(OBJ2)
 	$(CC) -I$(IDIR) -o $@ $^ $(PROFILE) $(LIBS)
-
-test: dir $(OBJ) $(TOBJ)
-	@$(foreach test,$(TOBJ), $(CC) -o $(patsubst %_test.o,%,$(test)) $(OBJ) $(test) -lcppunit && ./$(patsubst %_test.o,%,$(test));)
 
 clean:
 	rm -rf $(ODIR) *~ $(INCDIR)/*~
@@ -56,4 +43,4 @@ distclean: clean
 
 rebuild: distclean all
 
-.PHONY: clean test socket
+.PHONY: clean
