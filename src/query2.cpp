@@ -14,9 +14,109 @@
 #include "mc.h"
 using namespace std;
 
+#define NUM_HOUSE 40
+#define NUM_PLUGS 2125
+#define MAX_SIZE (2125*24*3600)
+
+#define WINDOW_1HR (3600)
+#define WINDOW_24HR (24*3600)
+
+measurement *data = new measurement[MAX_SIZE];
+unordered_map<unsigned, unordered_map<unsigned, Mc> > mc[NUM_HOUSE];
+Mc global_median;
+int num_percentage_more = 0;
+int current_index = 0;
+int hr_begin = 0;
+Mc msc;
+
 void solveQuery2(measurement *m)
 {
-    cout<<"solving query2 for ts: "<<m->timestamp<<endl;
+    data[current_index] = *m;
+
+    while(data[hr_begin].timestamp + WINDOW_1HR < data[current_index].timestamp)
+    {
+        float old_median = global_median.getMedian();
+        global_median.del(data[hr_begin].value);
+        float new_median = global_median.getMedian();
+
+        float old_plug_median = mc[m->house_id][m->household_id][m->plug_id].getMedian();
+        mc[data[hr_begin].house_id][data[hr_begin].household_id][data[hr_begin].plug_id].del(data[hr_begin].value);
+        float new_plug_median = mc[data[hr_begin].house_id][data[hr_begin].household_id][data[hr_begin].plug_id].getMedian();
+
+        hr_begin++;
+
+        if(old_median == new_median && old_plug_median == new_plug_median)
+            continue;
+        else if(old_median == new_median && old_plug_median != new_plug_median)
+        {
+            msc.del(old_plug_median);
+            msc.insert(new_plug_median);
+
+            if((new_plug_median - new_median >= 0) == (old_plug_median - old_median >= 0))
+                continue;
+            else if(new_plug_median - new_median >= 0)
+                num_percentage_more--;
+            else
+                num_percentage_more++;
+        } else
+        {
+            if(old_plug_median != new_plug_median)
+            {
+                msc.del(old_plug_median);
+                msc.insert(new_plug_median);
+            }
+
+            num_percentage_more = msc.calNumber(new_median);
+        }
+
+        // OUTPUT
+    }
+
+    // last prediction
+    float old_median = global_median.getMedian();
+    float old_plug_median = mc[m->house_id][m->household_id][m->plug_id].getMedian();
+    if(data[hr_begin].timestamp + WINDOW_1HR == data[current_index].timestamp)
+    {
+        global_median.del(data[hr_begin].value);
+        mc[m->house_id][m->household_id][m->plug_id].del(data[hr_begin].value);
+        hr_begin++;
+    }
+
+    global_median.insert(m->value);
+    mc[m->house_id][m->household_id][m->plug_id].insert(m->value);
+
+    float new_median = global_median.getMedian();
+    float new_plug_median = mc[m->house_id][m->household_id][m->plug_id].getMedian();
+
+    if(!(old_median == new_median && old_plug_median == new_plug_median))
+    {
+        if(old_median == new_median && old_plug_median != new_plug_median)
+        {
+            msc.del(old_plug_median);
+            msc.insert(new_plug_median);
+
+            if(!((new_plug_median - new_median >= 0) == (old_plug_median - old_median >= 0)))
+            {
+                if(new_plug_median - new_median >= 0)
+                    num_percentage_more--;
+                else
+                    num_percentage_more++;
+            }
+        } else
+        {
+            if(old_plug_median != new_plug_median)
+            {
+                msc.del(old_plug_median);
+                msc.insert(new_plug_median);
+            }
+
+            num_percentage_more = msc.calNumber(new_median);
+        }
+    }
+
+    // OUTPUT
+
+    current_index++;
 }
 
 // arg: broker_ip port
@@ -92,6 +192,7 @@ int main(int argc, char *argv[])
     }
 
     delete m;
+    delete data;
     close(sockfd);
     return 0;
 }

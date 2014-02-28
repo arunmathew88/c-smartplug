@@ -36,6 +36,8 @@ class Mc
 	~Mc();
 	float getMedian();
 	void insert(float elem);
+	void del(float elem);
+	float calNumber(float val);
 };
 
 #endif

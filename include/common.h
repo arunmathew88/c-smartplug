@@ -1,6 +1,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <unordered_map>
+
 // input struct
 struct measurement
 {

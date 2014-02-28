@@ -65,6 +65,15 @@ void Mc::insert(float elem)
 	}
 }
 
+void Mc::del(float elem)
+{
+}
+
+float Mc::calNumber(float val)
+{
+	return 1.0;
+}
+
 Mc::~Mc()
 {
 }
