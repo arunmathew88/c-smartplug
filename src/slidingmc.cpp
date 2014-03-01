@@ -160,5 +160,6 @@ float SlidingMc::getMedian()
 
 SlidingMc::~SlidingMc()
 {
-	delete[] (bins-1);
+	bins =  bins - 1;
+	delete[] bins;
 }
