@@ -41,7 +41,7 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 			int new_pos = binarySearch(0, size, mvalue);
 
 			// safety check
-			if(!((data[pos]->plug_id == plug_id) && (data[pos]->house_id == house_id) && (data[pos]->hh_id == hh_id)))
+			if(size >= NUM_PLUGS && ((data[pos]->plug_id != plug_id) || (data[pos]->house_id != house_id) || (data[pos]->hh_id != hh_id)))
 			{
 				cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
 				exit(-1);

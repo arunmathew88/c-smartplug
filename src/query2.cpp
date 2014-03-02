@@ -15,7 +15,7 @@
 #include "scont.h"
 using namespace std;
 
-#define MAX_SIZE (24*3600*215)
+#define MAX_SIZE (24*3600*2125)
 
 enum Window
 {
@@ -60,20 +60,12 @@ void solveQuery2(measurement *m)
             unsigned household_id = data[hr_begin[i]].household_id;
             unsigned plug_id = data[hr_begin[i]].plug_id;
 
-            if(mc[i][house_id].find(household_id) == mc[i][house_id].end())
-                mc[i][house_id].insert(pair<unsigned, unordered_map<unsigned, SlidingMc> >(household_id, unordered_map<unsigned, SlidingMc>({})));
-
-            if(mc[i][house_id][household_id].find(plug_id) == mc[i][house_id][household_id].end())
-                mc[i][house_id][household_id][plug_id] = SlidingMc();
-
-            // if(mc[i][m->house_id].find(m->household_id) == mc[i][m->house_id].end())
-            //     mc[i][m->house_id].emplace(m->household_id, unordered_map<unsigned, SlidingMc>());
-
-            if(mc[i][m->house_id][household_id].find(m->plug_id) == mc[i][m->house_id][m->household_id].end())
-                mc[i][m->house_id][m->household_id][m->plug_id] = SlidingMc();
+            // initializing
+            mc[i][house_id][household_id][plug_id];
+            mc[i][m->house_id][m->household_id][m->plug_id];
 
             float old_median = global_median[i].getMedian();
-            float old_plug_median = mc[i][house_id][household_id][plug_id].getMedian();
+            float old_plug_median = (mc[i][house_id][household_id][plug_id]).getMedian();
 
             if(data[hr_begin[i]].timestamp + getWindowSize(ws) <= data[current_index].timestamp)
             {
@@ -90,16 +82,12 @@ void solveQuery2(measurement *m)
             float new_median = global_median[i].getMedian();
             float new_plug_median = mc[i][house_id][household_id][plug_id].getMedian();
 
-            hr_begin[i]++;
-
-            if(old_median == new_median && old_plug_median == new_plug_median)
-                continue;
+            if(old_median == new_median && old_plug_median == new_plug_median) {}
             else if(old_median == new_median && old_plug_median != new_plug_median)
             {
                 msc[i].insert(house_id, household_id, plug_id, new_plug_median, old_plug_median);
 
-                if((new_plug_median - new_median >= 0) == (old_plug_median - old_median >= 0))
-                    continue;
+                if((new_plug_median - new_median >= 0) == (old_plug_median - old_median >= 0)) {}
                 else if(new_plug_median - new_median >= 0)
                     num_percentage_more[i]--;
                 else
@@ -114,12 +102,19 @@ void solveQuery2(measurement *m)
                 num_percentage_more[i] = msc[i].getNumOfLargeNum(new_median);
             }
 
-            if(data[hr_begin[i]].timestamp + getWindowSize(ws) > data[current_index].timestamp)
+            int old_hr_begin = hr_begin[i];
+            hr_begin[i]++;
+            if(hr_begin[i] == MAX_SIZE)
+                hr_begin[i] = 0;
+
+            if(data[old_hr_begin].timestamp + getWindowSize(ws) > data[current_index].timestamp)
                 break;
         }
     }
 
     current_index++;
+    if(current_index == MAX_SIZE)
+        current_index = 0;
 }
 
 // arg: broker_ip port
@@ -174,7 +169,7 @@ int main(int argc, char *argv[])
             memcpy(b, &m, n);
 
             unsigned nrest = read(sockfd, m, sizeof(measurement) - n);
-            if(nrest == sizeof(measurement) - n)
+            if(nrest + n == sizeof(measurement))
             {
                 memcpy(b+n, &m, nrest);cout<<m->timestamp<<endl;
                 solveQuery2(m);

@@ -32,6 +32,7 @@ class SlidingMc
   public:
 	SlidingMc();
 	~SlidingMc();
+	SlidingMc(const SlidingMc &smc);
 	float getMedian();
 	void insert(float val);
 	void del(float val);

@@ -8,6 +8,21 @@ SlidingMc::SlidingMc()
 	bins = &(bins[1]);
 }
 
+SlidingMc::SlidingMc(const SlidingMc &smc)
+{
+	size = smc.size;
+	num_bins = smc.num_bins;
+
+	bins = new Bin[MAX_BINS+2];
+	bins = &(bins[1]);
+
+	for(int i=0; i<num_bins; i++)
+	{
+		bins[i].val = smc.bins[i].val;
+		bins[i].freq = smc.bins[i].freq;
+	}
+}
+
 float SlidingMc::findMedian(int mindex)
 {
 	int index=-1, cum=0;
