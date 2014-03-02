@@ -65,6 +65,8 @@ void solveQuery2(measurement *m)
         Window ws = (Window)i;
         while(true)
         {
+            int old_percentage = num_percentage_more[i];
+
             unsigned house_id = hr_begin_node[i]->mt.house_id;
             unsigned household_id =  hr_begin_node[i]->mt.household_id;
             unsigned plug_id =  hr_begin_node[i]->mt.plug_id;
@@ -116,6 +118,9 @@ void solveQuery2(measurement *m)
             hr_begin_node[i] = hr_begin_node[i]->next;
             if(i == NUM_WINDOWS)
                 delete old_hr_begin_node;
+
+            if(old_percentage != num_percentage_more[i])
+                cout<<num_percentage_more[i]<<endl;
 
             if(ts + getWindowSize(ws) > current_node->mt.timestamp)
                 break;
