@@ -15,7 +15,7 @@
 #include "scont.h"
 using namespace std;
 
-#define MAX_SIZE (24*3600)
+#define MAX_SIZE (24*3600*215)
 
 enum Window
 {
@@ -59,6 +59,18 @@ void solveQuery2(measurement *m)
             unsigned house_id = data[hr_begin[i]].house_id;
             unsigned household_id = data[hr_begin[i]].household_id;
             unsigned plug_id = data[hr_begin[i]].plug_id;
+
+            if(mc[i][house_id].find(household_id) == mc[i][house_id].end())
+                mc[i][house_id].insert(pair<unsigned, unordered_map<unsigned, SlidingMc> >(household_id, unordered_map<unsigned, SlidingMc>({})));
+
+            if(mc[i][house_id][household_id].find(plug_id) == mc[i][house_id][household_id].end())
+                mc[i][house_id][household_id][plug_id] = SlidingMc();
+
+            // if(mc[i][m->house_id].find(m->household_id) == mc[i][m->house_id].end())
+            //     mc[i][m->house_id].emplace(m->household_id, unordered_map<unsigned, SlidingMc>());
+
+            if(mc[i][m->house_id][household_id].find(m->plug_id) == mc[i][m->house_id][m->household_id].end())
+                mc[i][m->house_id][m->household_id][m->plug_id] = SlidingMc();
 
             float old_median = global_median[i].getMedian();
             float old_plug_median = mc[i][house_id][household_id][plug_id].getMedian();
