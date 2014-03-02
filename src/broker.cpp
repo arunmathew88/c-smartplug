@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     unsigned id;
     connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
 
-    FILE * ifile = fopen(data_file.c_str(), "r");
+    FILE* ifile = fopen(data_file.c_str(), "r");
     measurement m;
 
     while(!feof(ifile))

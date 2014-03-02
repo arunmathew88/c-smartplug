@@ -4,7 +4,7 @@ IDIR = include
 CC = g++
 DEBUG = -g
 PROFILE =
-CFLAGS = -Wall -c -std=c++0x -Wl,--stack,36000000 $(DEBUG) -I$(IDIR) $(PROFILE)
+CFLAGS = -Wall -c -std=c++0x $(DEBUG) -I$(IDIR) $(PROFILE)
 
 SDIR = src
 ODIR = bin

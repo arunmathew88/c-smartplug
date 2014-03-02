@@ -15,8 +15,6 @@
 #include "scont.h"
 using namespace std;
 
-#define MAX_SIZE (24*3600*2125)
-
 enum Window
 {
     WINDOW_1HR = 0,
@@ -38,27 +36,38 @@ unsigned getWindowSize(Window ws)
     }
 }
 
+struct Node
+{
+    measurement mt;
+    Node* next;
+
+    Node(measurement m = measurement(), Node* n=NULL)
+    : mt(m), next(n) {}
+};
+typedef struct Node Node;
+
 unordered_map<unsigned, unordered_map<unsigned, SlidingMc> > mc[NUM_WINDOWS][NUM_HOUSE];
 SlidingMc global_median[NUM_WINDOWS];
 int num_percentage_more[NUM_WINDOWS] = {0};
 SCont msc[NUM_WINDOWS];
-int hr_begin[NUM_WINDOWS] = {0};
+Node* hr_begin_node[NUM_WINDOWS];
 
-measurement data[MAX_SIZE];
-int current_index = 0;
+Node* data;
+Node* current_node;
 
 void solveQuery2(measurement *m)
 {
-    data[current_index] = *m;
+    current_node->mt = *m;
+    current_node->next = new Node();
 
     for(int i=0; i<NUM_WINDOWS; i++)
     {
         Window ws = (Window)i;
         while(true)
         {
-            unsigned house_id = data[hr_begin[i]].house_id;
-            unsigned household_id = data[hr_begin[i]].household_id;
-            unsigned plug_id = data[hr_begin[i]].plug_id;
+            unsigned house_id = hr_begin_node[i]->mt.house_id;
+            unsigned household_id =  hr_begin_node[i]->mt.household_id;
+            unsigned plug_id =  hr_begin_node[i]->mt.plug_id;
 
             // initializing
             mc[i][house_id][household_id][plug_id];
@@ -67,13 +76,13 @@ void solveQuery2(measurement *m)
             float old_median = global_median[i].getMedian();
             float old_plug_median = (mc[i][house_id][household_id][plug_id]).getMedian();
 
-            if(data[hr_begin[i]].timestamp + getWindowSize(ws) <= data[current_index].timestamp)
+            if(hr_begin_node[i]->mt.timestamp + getWindowSize(ws) <= current_node->mt.timestamp)
             {
-                global_median[i].del(data[hr_begin[i]].value);
-                mc[i][house_id][household_id][plug_id].del(data[hr_begin[i]].value);
+                global_median[i].del(hr_begin_node[i]->mt.value);
+                mc[i][house_id][household_id][plug_id].del(hr_begin_node[i]->mt.value);
             }
 
-            if(data[hr_begin[i]].timestamp + getWindowSize(ws) >= data[current_index].timestamp)
+            if(hr_begin_node[i]->mt.timestamp + getWindowSize(ws) >= current_node->mt.timestamp)
             {
                 global_median[i].insert(m->value);
                 mc[i][m->house_id][m->household_id][m->plug_id].insert(m->value);
@@ -102,19 +111,18 @@ void solveQuery2(measurement *m)
                 num_percentage_more[i] = msc[i].getNumOfLargeNum(new_median);
             }
 
-            int old_hr_begin = hr_begin[i];
-            hr_begin[i]++;
-            if(hr_begin[i] == MAX_SIZE)
-                hr_begin[i] = 0;
+            Node* old_hr_begin_node = hr_begin_node[i];
+            unsigned ts = hr_begin_node[i]->mt.timestamp;
+            hr_begin_node[i] = hr_begin_node[i]->next;
+            if(i == NUM_WINDOWS)
+                delete old_hr_begin_node;
 
-            if(data[old_hr_begin].timestamp + getWindowSize(ws) > data[current_index].timestamp)
+            if(ts + getWindowSize(ws) > current_node->mt.timestamp)
                 break;
         }
     }
 
-    current_index++;
-    if(current_index == MAX_SIZE)
-        current_index = 0;
+    current_node = current_node->next;
 }
 
 // arg: broker_ip port
@@ -156,6 +164,12 @@ int main(int argc, char *argv[])
        printf("\n Error : Connect Failed \n");
        return 1;
     }
+
+    // init
+    data = new Node();
+    current_node = data;
+    for(int i=0; i<NUM_WINDOWS; i++)
+        hr_begin_node[i] = data;
 
     measurement *m = new measurement;
     while((n = read(sockfd, m, sizeof(measurement))) > 0)
