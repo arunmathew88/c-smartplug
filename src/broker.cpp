@@ -56,56 +56,71 @@ int main(int argc, char *argv[])
     unsigned id;
     int house_id;
 
-    // get synchronization from subscribers
-    int subscribers = 0;
-    while(subscribers < subscribers_expected)
-    {
-        connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
-        if((n = read(connfd, &house_id, sizeof(int))) > 0)
-        {
-            if(house_id < subscribers_expected && house_id >= 0)
-            {
-                con_map[house_id] = connfd;
-            } else
-            {
-                cout<<"error occurred: wrong house id!"<<endl;
-                delete[] con_map;
-                close(listenfd);
-                exit(-1);
-            }
-        }
+	# define BUFFERLENGTH (128*1024)
+	char *buffer[40];
+	size_t offset[40] = {0};
 
-        subscribers++;
-    }
+	// get synchronization from subscribers
+	int subscribers = 0;
+	while(subscribers < subscribers_expected)
+	{
+		connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
+		if((n = read(connfd, &house_id, sizeof(int))) > 0)
+		{
+			if(house_id < subscribers_expected && house_id >= 0)
+			{
+				con_map[house_id] = connfd;
+				buffer[house_id] = new char[BUFFERLENGTH];
+			} else
+			{
+				cout<<"error occurred: wrong house id!"<<endl;
+				delete[] con_map;
+				close(listenfd);
+				exit(-1);
+			}
+		}
 
-    FILE * ifile = fopen(data_file.c_str(), "r");
-    measurement m;
+		subscribers++;
+	}
 
-    unsigned long ptime = time(NULL), ctime, count=0, stat=atol(argv[3]);
+	FILE * ifile = fopen(data_file.c_str(), "r");
+	measurement m;
 
-    while(!feof(ifile))
-    {
-        if(fscanf(ifile, "%u,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &house_id) < 7)
-            continue;
+	unsigned long ptime = time(NULL), ctime, count=0, stat=atol(argv[3]);
 
-        // send the message
-        if ( house_id < subscribers )
-        {
-        	write(con_map[house_id], &m, sizeof(m));
-        	count++;
-        }
-        if(count == stat)
-        {
-            ctime = time(NULL);
-            cerr<<"Throughput = "<<count/(ctime-ptime+1)<<endl;
-            ptime = ctime;
-            count = 0;
-        }
-    }
+	while(!feof(ifile))
+	{
+		if(fscanf(ifile, "%u,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &house_id) < 7)
+			continue;
+
+		// send the message
+		if ( house_id < subscribers )
+		{
+			memcpy(buffer[house_id]+offset[house_id], &m, sizeof(m));
+			offset[house_id] += sizeof(m);
+			if (BUFFERLENGTH - offset[house_id] < sizeof(m)) {
+				write(con_map[house_id], buffer[house_id], offset[house_id]);
+				offset[house_id] = 0;
+			}
+			count++;
+		}
+		if(count == stat)
+		{
+			ctime = time(NULL);
+			cerr<<"Throughput = "<<count/(ctime-ptime+1)<<endl;
+			ptime = ctime;
+			count = 0;
+		}
+	}
 
 
-    for(int i=0; i<subscribers_expected; i++)
-        close(con_map[i]);
+	for(int i=0; i<subscribers_expected; i++) {
+		if (offset[i] != 0)
+			write(con_map[i], buffer[i], offset[i]);
+		delete buffer[i];
+		close(con_map[i]);
+	}
+
     delete[] con_map;
     close(listenfd);
 }
