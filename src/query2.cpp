@@ -98,17 +98,28 @@ void solveQuery2(measurement *m)
             {
                 msc[i].insert(house_id, household_id, plug_id, new_plug_median, old_plug_median);
 
-                if((new_plug_median - new_median >= 0) == (old_plug_median - old_median >= 0)) {}
-                else if(new_plug_median - new_median >= 0)
-                    num_percentage_more[i]--;
-                else
+                if((new_plug_median - new_median > 0) == (old_plug_median - old_median > 0)) {}
+                else if(new_plug_median - new_median > 0)
+                {
                     num_percentage_more[i]++;
+                    if(num_percentage_more[i] > NUM_PLUGS)
+                    {
+                        cout<<"SHOULD NOT REACH HERE! lineno: "<<__LINE__<<" File: "<<__FILE__<<endl;
+                        exit(-1);
+                    }
+                } else
+                {
+                    num_percentage_more[i]--;
+                    if(num_percentage_more[i] < 0)
+                    {
+                        cout<<"SHOULD NOT REACH HERE! lineno: "<<__LINE__<<" File: "<<__FILE__<<endl;
+                        exit(-1);
+                    }
+                }
             } else
             {
                 if(old_plug_median != new_plug_median)
-                {
                     msc[i].insert(house_id, household_id, plug_id, new_plug_median, old_plug_median);
-                }
 
                 num_percentage_more[i] = msc[i].getNumOfLargeNum(new_median);
             }
@@ -116,7 +127,7 @@ void solveQuery2(measurement *m)
             Node* old_hr_begin_node = hr_begin_node[i];
             unsigned ts = hr_begin_node[i]->mt.timestamp;
             hr_begin_node[i] = hr_begin_node[i]->next;
-            if(i == NUM_WINDOWS)
+            if(i == NUM_WINDOWS && (ts + getWindowSize(ws) <= current_node->mt.timestamp))
                 delete old_hr_begin_node;
 
             if(old_percentage != num_percentage_more[i])

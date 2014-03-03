@@ -1,5 +1,5 @@
 # unused broker: 10.129.34.88
-# unused house servers: 10.129.34.67 (10.129.34.38 not working)
+# unused house servers: 10.129.26.51 (10.129.34.38 not working)
 brokers = ["10.129.34.64", "10.129.34.40"]
 houses = ["10.129.34.57", "10.129.34.58", "10.129.34.67", "10.129.34.61", "10.129.34.36", "10.129.34.66"]
 filename = ["sorted.csv", "20houses.csv", "10houses.csv"]
