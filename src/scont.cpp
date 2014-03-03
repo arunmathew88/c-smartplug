@@ -37,8 +37,8 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 	{
 		if(old_val != -1)
 		{
-			int pos = binarySearch(0, size, old_val);
-			int new_pos = binarySearch(0, size, mvalue);
+			unsigned pos = binarySearch(0, size, old_val);
+			unsigned new_pos = binarySearch(0, size, mvalue);
 
 			// safety check
 			if(size >= NUM_PLUGS && ((data[pos]->plug_id != plug_id) || (data[pos]->house_id != house_id) || (data[pos]->hh_id != hh_id)))
@@ -51,28 +51,37 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 				data[pos]->val = mvalue;
 			else if(new_pos > pos)
 			{
+				Entry* e = data[pos];
 				memmove(&(data[pos]), &(data[pos+1]), sizeof(Entry*)*(new_pos-pos));
-				data[new_pos]->house_id = house_id;
-				data[new_pos]->hh_id = hh_id;
-				data[new_pos]->plug_id = plug_id;
-				data[new_pos]->val = mvalue;
+				data[new_pos] = e;
+				e->val = mvalue;
 			} else
 			{
+				Entry* e = data[pos];
 				memmove(&(data[new_pos+1]), &(data[new_pos]), sizeof(Entry*)*(pos-new_pos));
-				data[new_pos]->house_id = house_id;
-				data[new_pos]->hh_id = hh_id;
-				data[new_pos]->plug_id = plug_id;
-				data[new_pos]->val = mvalue;
+				data[new_pos] = e;
+				e->val = mvalue;
 			}
 		} else if(size < NUM_PLUGS)
 		{
-			int new_pos = binarySearch(0, size, mvalue);
+			unsigned new_pos = binarySearch(0, size, mvalue);
 
-			memmove(&(data[new_pos+1]), &(data[new_pos]), sizeof(Entry*)*(size-new_pos));
-			data[new_pos]->house_id = house_id;
-			data[new_pos]->hh_id = hh_id;
-			data[new_pos]->plug_id = plug_id;
-			data[new_pos]->val = mvalue;
+			if(new_pos + 1 == size)
+			{
+				data[size]->house_id = house_id;
+				data[size]->hh_id = hh_id;
+				data[size]->plug_id = plug_id;
+				data[size]->val = mvalue;
+			} else
+			{
+				Entry* e = data[size];
+				memmove(&(data[new_pos+2]), &(data[new_pos+1]), sizeof(Entry*)*(size-new_pos-1));
+				data[new_pos+1] = e;
+				e->house_id = house_id;
+				e->hh_id = hh_id;
+				e->plug_id = plug_id;
+				e->val = mvalue;
+			}
 			size++;
 		} else
 		{
@@ -90,12 +99,12 @@ int SCont::getNumOfLargeNum(float threshold)
 	if(threshold < data[0]->val)
 		return NUM_PLUGS;
 
-	if(threshold >= data[NUM_PLUGS-1]->val)
+	if(threshold >= data[size-1]->val)
 		return 0;
 
 	int pos = binarySearch(0, size, threshold);
 
-	return (NUM_PLUGS - pos - 1);
+	return (size - pos - 1);
 }
 
 SCont::~SCont()
