@@ -22,6 +22,12 @@ OBJ1 = $(patsubst %,$(ODIR)/%,$(_OBJ1))
 _OBJ2 = broker.o
 OBJ2 = $(patsubst %,$(ODIR)/%,$(_OBJ2))
 
+_TOBJ = slidingmc_test.o
+TOBJ = $(patsubst %,$(ODIR)/%,$(_TOBJ))
+
+$(ODIR)/%_test.o: $(TDIR)/%_test.cpp $(DEPS)
+	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
+
 $(ODIR)/%.o: $(SDIR)/%.cpp $(DEPS)
 	$(CC) $(CFLAGS) -o $@ $<
 
@@ -38,6 +44,9 @@ $(ODIR)/broker: $(OBJ2)
 
 clean:
 	rm -rf $(ODIR) *~ $(INCDIR)/*~
+
+test: dir $(TOBJ)
+	@$(foreach test,$(TOBJ), $(CC) -o $(patsubst %_test.o,%,$(test)) $(test) -lcppunit && ./$(patsubst %_test.o,%,$(test));)
 
 distclean: clean
 

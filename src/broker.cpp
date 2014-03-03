@@ -30,7 +30,6 @@ int main(int argc, char *argv[])
     {
         port = atoi(argv[1]);
         data_file = string(argv[2]);
-        cout<<data_file
     }
 
     int listenfd=0, connfd=0;
