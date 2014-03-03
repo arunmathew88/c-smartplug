@@ -66,6 +66,9 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 		{
 			unsigned new_pos = binarySearch(0, size, mvalue);
 
+			if(mvalue < data[new_pos]->val)
+				new_pos--;
+
 			if(new_pos + 1 == size)
 			{
 				data[size]->house_id = house_id;

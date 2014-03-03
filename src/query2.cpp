@@ -59,7 +59,7 @@ void solveQuery2(measurement *m)
 {
     current_node->mt = *m;
     current_node->next = new Node();
-
+    cout << "m timestamp = " << m->timestamp << endl;
     for(int i=0; i<NUM_WINDOWS; i++)
     {
         Window ws = (Window)i;
@@ -107,7 +107,7 @@ void solveQuery2(measurement *m)
             if(old_percentage != num_percentage_more[i])
                 cout<<num_percentage_more[i]<<endl;
 
-            if(ts + getWindowSize(ws) > current_node->mt.timestamp)
+            if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
                 break;
         }
     }

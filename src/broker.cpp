@@ -60,7 +60,8 @@ int main(int argc, char *argv[])
             continue;
 
         // send the message
-        write(connfd, &m, sizeof(m));
+        if(m.property == '0')
+            write(connfd, &m, sizeof(m));
     }
 
     close(listenfd);

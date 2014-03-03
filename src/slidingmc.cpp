@@ -168,7 +168,7 @@ float SlidingMc::getMedian()
 {
 
 	if(size == 0)
-		return 0;
+		return -1;
 	else
 		return findMedian((size+1)/2);
 }
