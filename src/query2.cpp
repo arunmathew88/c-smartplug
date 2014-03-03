@@ -59,7 +59,7 @@ void solveQuery2(measurement *m)
 {
     current_node->mt = *m;
     current_node->next = new Node();
-    cout << "m timestamp = " << m->timestamp << endl;
+
     for(int i=0; i<NUM_WINDOWS; i++)
     {
         Window ws = (Window)i;
@@ -105,7 +105,7 @@ void solveQuery2(measurement *m)
             num_percentage_more[i] = msc[i].getNumOfLargeNum(global_median[i].getMedian());
 
             if(old_percentage != num_percentage_more[i])
-                cout<<num_percentage_more[i]<<endl;
+                cout << ts << "," << ts + getWindowSize(ws) << "," << num_percentage_more[i]/(NUM_PLUGS/100.0) <<endl;
 
             if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
                 break;
