@@ -65,8 +65,6 @@ void solveQuery2(measurement *m)
         Window ws = (Window)i;
         while(true)
         {
-            int old_percentage = num_percentage_more[i];
-
             unsigned house_id = hr_begin_node[i]->mt.house_id;
             unsigned household_id =  hr_begin_node[i]->mt.household_id;
             unsigned plug_id =  hr_begin_node[i]->mt.plug_id;
@@ -75,60 +73,36 @@ void solveQuery2(measurement *m)
             mc[i][house_id][household_id][plug_id];
             mc[i][m->house_id][m->household_id][m->plug_id];
 
-            float old_median = global_median[i].getMedian();
-            float old_plug_median = (mc[i][house_id][household_id][plug_id]).getMedian();
-
-            if(hr_begin_node[i]->mt.timestamp + getWindowSize(ws) <= current_node->mt.timestamp)
+            unsigned ts = hr_begin_node[i]->mt.timestamp;
+            if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
             {
+                float old_plug_median = mc[i][house_id][household_id][plug_id].getMedian();
+
                 global_median[i].del(hr_begin_node[i]->mt.value);
                 mc[i][house_id][household_id][plug_id].del(hr_begin_node[i]->mt.value);
-            }
 
-            if(hr_begin_node[i]->mt.timestamp + getWindowSize(ws) >= current_node->mt.timestamp)
-            {
-                global_median[i].insert(m->value);
-                mc[i][m->house_id][m->household_id][m->plug_id].insert(m->value);
-            }
-
-            float new_median = global_median[i].getMedian();
-            float new_plug_median = mc[i][house_id][household_id][plug_id].getMedian();
-
-            if(old_median == new_median && old_plug_median == new_plug_median) {}
-            else if(old_median == new_median && old_plug_median != new_plug_median)
-            {
+                float new_plug_median = mc[i][house_id][household_id][plug_id].getMedian();
                 msc[i].insert(house_id, household_id, plug_id, new_plug_median, old_plug_median);
 
-                if((new_plug_median - new_median > 0) == (old_plug_median - old_median > 0)) {}
-                else if(new_plug_median - new_median > 0)
-                {
-                    num_percentage_more[i]++;
-                    if(num_percentage_more[i] > NUM_PLUGS)
-                    {
-                        cout<<"SHOULD NOT REACH HERE! lineno: "<<__LINE__<<" File: "<<__FILE__<<endl;
-                        exit(-1);
-                    }
-                } else
-                {
-                    num_percentage_more[i]--;
-                    if(num_percentage_more[i] < 0)
-                    {
-                        cout<<"SHOULD NOT REACH HERE! lineno: "<<__LINE__<<" File: "<<__FILE__<<endl;
-                        exit(-1);
-                    }
-                }
-            } else
-            {
-                if(old_plug_median != new_plug_median)
-                    msc[i].insert(house_id, household_id, plug_id, new_plug_median, old_plug_median);
-
-                num_percentage_more[i] = msc[i].getNumOfLargeNum(new_median);
+                Node* old_hr_begin_node = hr_begin_node[i];
+                hr_begin_node[i] = hr_begin_node[i]->next;
+                if(i == NUM_WINDOWS-1)
+                    delete old_hr_begin_node;
             }
 
-            Node* old_hr_begin_node = hr_begin_node[i];
-            unsigned ts = hr_begin_node[i]->mt.timestamp;
-            hr_begin_node[i] = hr_begin_node[i]->next;
-            if(i == NUM_WINDOWS && (ts + getWindowSize(ws) <= current_node->mt.timestamp))
-                delete old_hr_begin_node;
+            if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
+            {
+                float old_plug_median = mc[i][m->house_id][m->household_id][m->plug_id].getMedian();
+
+                global_median[i].insert(m->value);
+                mc[i][m->house_id][m->household_id][m->plug_id].insert(m->value);
+
+                float new_plug_median = mc[i][m->house_id][m->household_id][m->plug_id].getMedian();
+                msc[i].insert(m->house_id, m->household_id, m->plug_id, new_plug_median, old_plug_median);
+            }
+
+            int old_percentage = num_percentage_more[i];
+            num_percentage_more[i] = msc[i].getNumOfLargeNum(global_median[i].getMedian());
 
             if(old_percentage != num_percentage_more[i])
                 cout<<num_percentage_more[i]<<endl;
