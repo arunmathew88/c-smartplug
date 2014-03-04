@@ -202,16 +202,17 @@ void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
             ((ts % timeslice_lengths.at(slice))?2:1) * timeslice_lengths.at(slice);
     float median = house_median_container[slice][forcast_ts % 86400].getMedian(), forcast;
 
-    if(house_w.find(slice) == house_w.end())
+    /*if(house_w.find(slice) == house_w.end())
         house_w[slice] = {};
     if(house_w[slice].find(forcast_ts % 86400) == house_w[slice].end())
         house_w[slice][forcast_ts % 86400] = 0.5;
 
-    float weight = house_w[slice][forcast_ts % 86400];
+    float weight = house_w[slice][forcast_ts % 86400];*/
     if (median < 0)
         forcast = average_load;
     else
-        forcast = (1 - weight)*average_load + weight*median;
+        forcast = (average_load + median)/2;
+
 
     if(house_forecast_prev_prev.find(slice) == house_forecast_prev_prev.end())
         house_forecast_prev_prev[slice] = {};
@@ -228,6 +229,7 @@ void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
     house_forecast_prev_prev[slice][forcast_ts % 86400] = house_forecast_prev[slice][forcast_ts % 86400];
     house_forecast_prev[slice][forcast_ts % 86400] = forcast;
 
+    /*
     if(house_w_prev_prev.find(slice) == house_w_prev_prev.end())
         house_w_prev_prev[slice] = {};
     if(house_w_prev_prev[slice].find(forcast_ts % 86400) == house_w_prev_prev[slice].end())
@@ -278,7 +280,7 @@ void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
 
     house_avg_value_prev_prev[slice][forcast_ts % 86400] = house_avg_value_prev[slice][forcast_ts % 86400];
     house_avg_value_prev[slice][forcast_ts % 86400] = average_load;
-
+    */
 
     printf("HOUSE_FORECAST_%u_S %u %u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, forcast);
 }
@@ -496,10 +498,15 @@ int main(int argc, char *argv[])
     write(sockfd, &house_id, sizeof(house_id));
 
     measurement *m = new measurement;
+    int count = 0;
     while((n = read(sockfd, m, sizeof(measurement))) > 0)
     {
+        count++;
         if(n == sizeof(measurement))
         {
+            if(count%100 == 0){
+                std::cerr << "ERROR = "  << house_error << endl;
+            }
             doProcessing(m);
         } else if(n < sizeof(measurement))
         {
