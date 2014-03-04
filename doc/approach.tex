@@ -6,13 +6,40 @@ For each slice size, we need to forecast the load for next to next time slice
 \subsection{Query 2}
 For query 2, a single multithreaded process reads the data and outputs the outliers. 
 \subsection{The Median Algorithm}
-Why do we need a median container
+[Why do we need a median container?
+What operations do we need from the median container?
+why approximate?]
 
-What operations do we need from the median container
+In query 2, we need the median of total load of all the plugs in all the houses and the median of load of each plug for the last one hour window and for the last 24 hour window. These windows are sliding. So, to calculate the median, we need to store the values in a container. This container must support operations to insert a value, delete a value and find the median efficiently. If we want exact median then we need to store all the values in an array, in which case, finding the median will be a constant order operation. But inserting or deleting a value will take linear time. To avoid this, we can use a container which gives approximate median.
 
-why approximate
 
-explain the algorithm
+[explain the algorithm]
+In this experiment, we have used a container which is implemented as follows:
+
+We have N bins. We store the starting value of each bin as well as the number of values in that bin (frequency of the bin). We also store the pointer to the bin containing the median and cumulative sum of the frequencies upto and including that bin. Now the three operations (insert a value, delete a value and get the median) are implemented as follows:
+
+
+
+\begin{itemize}
+  \item Get the median
+  
+  get the median
+  
+  \item Insert a value
+  
+  When we stream in the input data, we record the first N values. If the stream is smaller than the numberof bins(N), then we can get the exact median. Else, we use insert and delete functions as follows
+ 
+  \item Delete a value
+  
+  Delete a value
+  
+\end{itemize}
+
+
+
+
+
+
 
 Final complexity
 
