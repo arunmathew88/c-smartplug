@@ -23,7 +23,10 @@ class SlidingMc
 	int num_bins;	// number of bins <= NUM_BINS for 1 hr & 24hr sliding window
 	Bin *bins;		// array of bins for 1 hr & 24hr sliding window
 
-	float findMedian(int mindex);
+	int cum_sum;
+	int cur_median_index;
+
+	float findMedian();
 	int binarySearch(float val);
 	int binarySearch(int first, int last, float val);
 	void addNewBin(int pos, Bin b);

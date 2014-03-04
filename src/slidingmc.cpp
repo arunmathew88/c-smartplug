@@ -6,6 +6,9 @@ SlidingMc::SlidingMc()
 	num_bins = 0;
 	bins = new Bin[MAX_BINS+2];
 	bins = &(bins[1]);
+
+	cur_median_index = -1;
+	cum_sum = 0;
 }
 
 SlidingMc::SlidingMc(const SlidingMc &smc)
@@ -16,6 +19,9 @@ SlidingMc::SlidingMc(const SlidingMc &smc)
 	bins = new Bin[MAX_BINS+2];
 	bins = &(bins[1]);
 
+	cur_median_index = smc.cur_median_index;
+	cum_sum = smc.cum_sum;
+
 	for(int i=0; i<num_bins; i++)
 	{
 		bins[i].val = smc.bins[i].val;
@@ -23,20 +29,38 @@ SlidingMc::SlidingMc(const SlidingMc &smc)
 	}
 }
 
-float SlidingMc::findMedian(int mindex)
+float SlidingMc::findMedian()
 {
-	int index=-1, cum=0;
+	int mindex = (size+1)/2;
 
-	while(cum < mindex)
+	if(cum_sum < mindex)
 	{
-		index++;
-		cum += bins[index].freq;
+		while(cum_sum < mindex)
+		{
+			cur_median_index++;
+			cum_sum += bins[cur_median_index].freq;
+		}
+	} else if(cum_sum > mindex)
+	{
+		int temp = cum_sum - bins[cur_median_index].freq;
+		while(temp > mindex)
+		{
+			cur_median_index--;
+			cum_sum = temp;
+			temp -= bins[cur_median_index].freq;
+		}
 	}
 
-	if(index == num_bins-1)
-		return bins[index].val;
+	if(cur_median_index == num_bins-1)
+		return bins[cur_median_index].val;
+	// else if(cur_median_index == 0)
+	// 	return (bins[cur_median_index].val + bins[cur_median_index+1].val)/2;
+	// else if(size == cum_sum*2)
+	// 	return (bins[cur_median_index-1].val/4
+	// 			+ bins[cur_median_index].val/2
+	// 			+ bins[cur_median_index+1].val/4);
 	else
-		return (bins[index].val + bins[index+1].val)/2;
+		return (bins[cur_median_index].val + bins[cur_median_index+1].val)/2;
 }
 
 int SlidingMc::binarySearch(float val)
@@ -76,6 +100,13 @@ void SlidingMc::addNewBin(int pos, Bin b)
 		cout<<"should not reach at "<<__LINE__<<"in file: "<<__FILE__<<endl;
 		exit(-1);
 	}
+
+	if(cur_median_index > pos)
+	{
+		cur_median_index++;
+		cum_sum += b.val;
+	}
+
 	memmove(&(bins[pos+2]), &(bins[pos+1]), sizeof(Bin)*(num_bins-pos-1));
 	bins[pos+1] = b;
 	num_bins++;
@@ -93,6 +124,9 @@ void SlidingMc::insert(float val)
 		bins[0] = Bin(val, 1);
 		num_bins++;
 		flag = true;
+
+		cum_sum++;
+		cur_median_index++;
 	} else if(pos > num_bins)
 	{
 		cout<<"error occured: binarySearch is wrong!"<<endl;
@@ -101,10 +135,17 @@ void SlidingMc::insert(float val)
 	{
 		bins[pos] = Bin(val, 1);
 		num_bins++;
+
+		if(cur_median_index == num_bins)
+			cum_sum++;
 	} else
 	{
 		if(bins[pos].val == val || MAX_BINS <= num_bins)
+		{
+			if(pos <= cur_median_index)
+				cum_sum++;
 			bins[pos].freq++;
+		}
 		else
 			addNewBin(pos, Bin(val, 1));
 	}
@@ -122,6 +163,11 @@ void SlidingMc::insert(float val)
 				index = i;
 			}
 		}
+
+		if(cur_median_index > index)
+			cur_median_index--;
+		else if(cur_median_index == index)
+			cum_sum += bins[cur_median_index+1].freq;
 
 		if(flag)
 		{
@@ -157,10 +203,17 @@ void SlidingMc::del(float val)
 		pos--;
 	bins[pos].freq--;
 	size--;
+
+	if(cur_median_index >= pos)
+		cum_sum--;
+
 	if(bins[pos].freq == 0)
 	{
 		memmove(&(bins[pos]), &(bins[pos+1]), sizeof(Bin)*(num_bins-pos-1));
 		num_bins--;
+
+		if(cur_median_index >= pos)
+			cur_median_index--;
 	}
 }
 
@@ -170,7 +223,7 @@ float SlidingMc::getMedian()
 	if(size == 0)
 		return -1;
 	else
-		return findMedian((size+1)/2);
+		return findMedian();
 }
 
 SlidingMc::~SlidingMc()
