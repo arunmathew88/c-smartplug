@@ -4,7 +4,7 @@ IDIR = include
 CC = g++
 DEBUG = -g
 PROFILE =
-CFLAGS = -Wall -c -std=c++0x $(DEBUG) -I$(IDIR) $(PROFILE)
+CFLAGS = -Wall -D_FILE_OFFSET_BITS="64" -c -O3 -std=c++0x $(DEBUG) -I$(IDIR) $(PROFILE)
 
 SDIR = src
 ODIR = bin
