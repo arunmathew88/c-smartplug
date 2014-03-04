@@ -1,18 +1,23 @@
-# unused broker: 10.129.34.88
-# unused house servers: 10.129.34.67 (10.129.34.38 not working)
-brokers = ["10.129.34.64", "10.129.34.40"]
-houses = ["10.129.34.57", "10.129.34.58", "10.129.34.67", "10.129.34.61", "10.129.34.36", "10.129.34.66"]
-filename = ["sorted.csv", "20houses.csv", "10houses.csv"]
+brokers = []
+houses = []
+filename = []
+username = ""
+password = ""
+eval File.open('script/common.rb').read
+require 'shellwords'
 
-system("make clean")
+#Arguments are i=[0-2] j=[0-2]. 
+#	i is the index of file to be used. 0,1,2 corresponds to 40,20,10 respectively.
+#	j is the number of house VMs to be used 0,1,2 corresponds to 1,2,4
+
+time = Time.now.to_i
+j = ARGV[0].to_i
+k = ARGV[1].to_i
 brokers.each.with_index { |b, i|
-	system("sshpass -p synerg ssh synerg@#{b} \"rm -rf /home/synerg/c-smartplug/; pkill broker\"")
-	system("sshpass -p synerg scp -r ../c-smartplug/ synerg@#{b}:/home/synerg/")
-	system("sshpass -p synerg ssh synerg@#{b} \"cd c-smartplug; make; ./bin/broker #{(2**(2-i))*10} /media/ext_disk/#{filename[i]} 1000000 > out 2>&1 & \"")
+        system("sshpass -p #{password.shellescape} ssh #{username}@#{b} \"mkdir -p debsresults/#{filename[j]}/#{time}; cd c-smartplug; /usr/bin/time -v ./bin/broker #{(2**(2-j))*10} /disk/#{filename[j]} 10000000 > /home/#{username}/debsresults/#{filename[j]}/#{time}/broker 2>&1 & \"")
 }
 
 houses.each.with_index{ |h, i|
-	system("sshpass -p synerg ssh synerg@#{h} \"rm -rf /home/synerg/c-smartplug/; pkill house\"")
-	system("sshpass -p synerg scp -r ../c-smartplug/ synerg@#{h}:/home/synerg/")
-	system("sshpass -p synerg ssh synerg@#{h} \"cd c-smartplug; make; ruby script/houses.rb #{(i%4)*10}  #{(i%4)*10+9} #{brokers[i/4]} \"")
+        system("sshpass -p #{password.shellescape} ssh #{username}@#{h} \"mkdir -p debsresults/#{filename[j]}/#{time}; cd c-smartplug; ruby script/houses.rb #{i*40/(2**j*2**k)} #{(i+1)*40/(2**j*2**k)-1} #{brokers[i/4]} /home/#{username}/debsresults/#{filename[j]}/#{time} \"") if i<(2**k)
 }
+
