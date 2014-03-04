@@ -1,2 +1,21 @@
 %This file will contain our design approach
-Describe the basis and then the architecture here - for example how do you calculate medians, what kind of parallelism model is employed? How often do you need to synchronize? etc. 
+%Describe the basis and then the architecture here - for example how do you calculate medians, what kind of parallelism model is employed? How often do you need to synchronize? etc.
+\subsection{Query 1}
+For query 1, we have one house process for each house in the data set and a broker process. The broker process reads the data from the input stream and passes it to the corresponding house process. Communication between the processes is done via operating system sockets. House process gets a measurement from the broker and produces a forecast for the next to next time slice. 
+For each slice size, we need to forecast the load for next to next time slice 
+\subsection{Query 2}
+For query 2, a single multithreaded process reads the data and outputs the outliers. 
+\subsection{The Median Algorithm}
+Why do we need a median container
+
+What operations do we need from the median container
+
+why approximate
+
+explain the algorithm
+
+Final complexity
+
+Maybe graphs
+
+%We have implemented an approximate median algorithm. We divide the incoming data into n bins. Each bin has a frequency 
