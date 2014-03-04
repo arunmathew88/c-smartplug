@@ -2,10 +2,21 @@
 %Describe the basis and then the architecture here - for example how do you calculate medians, what kind of parallelism model is employed? How often do you need to synchronize? etc.
 \subsection{Query 1}
 For query 1, we have one house process for each house in the data set and a broker process. The broker process reads the data from the input stream and passes it to the corresponding house process. Communication between the processes is done via operating system sockets. House process gets a measurement from the broker and produces a forecast for the next to next time slice. 
-For each slice size, we need to forecast the load for next to next time slice 
+For each slice size, we need to forecast the load for next to next time slice.
+\subsubsection{The Median Algorithm for query 1}
+For this query, to forecast the load of a plug in a time slice of a specific size, we need the median of the previous average loads for that time slice and for that slice size. For each day and each plug, we have only one value per day of data for that time slice and slice size. So, we store all these values in a container.
+
+In the median container we maintain two heaps. Out of the two, one is a min-heap and the other is a max-heap. Each heap contains about half of the values. Now following three cases can occur:
+\begin{itemize}
+\item Case 1: The min-heap contains one more element than the max-heap. In this case, the median is the topmost value of min-heap.
+\item Case 2: The max-heap contains one more element than the min-heap. In this case, the median is the topmost value of max-heap.
+\item Case 3: Both the min-heap and the max-heap contain equal number of elements. In this case, the median is the average of the topmost value of min-heap and the topmost value of max-heap.
+
+\end{itemize}
+ 
 \subsection{Query 2}
 For query 2, a single multithreaded process reads the data and outputs the outliers. 
-\subsection{The Median Algorithm}
+\subsubsection{The Median Algorithm for query 2}
 [Why do we need a median container?
 What operations do we need from the median container?
 why approximate?]
@@ -16,14 +27,14 @@ In query 2, we need the median of total load of all the plugs in all the houses 
 [explain the algorithm]
 In this experiment, we have used a container which is implemented as follows:
 
-We have N bins. We store the starting value of each bin as well as the number of values in that bin (frequency of the bin). We also store the pointer to the bin containing the median and cumulative sum of the frequencies upto and including that bin. Now the three operations (insert a value, delete a value and get the median) are implemented as follows:
+We have N bins. We store the starting value of each bin as well as the number of values in that bin (frequency of the bin). We also store the pointer to the bin containing the median, cumulative sum of the frequencies upto and including that bin and the total number of values inserted into the container. Now the three operations (insert a value, delete a value and get the median) are implemented as follows:
 
 
 
 \begin{itemize}
   \item Get the median
   
-  get the median
+  
   
   \item Insert a value
   
