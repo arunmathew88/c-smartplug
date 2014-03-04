@@ -12,8 +12,9 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-#include "common.h"
 #include <cstdio>
+#include <ctime>
+#include "common.h"
 using namespace std;
 
 // arg: port, datafile
@@ -54,14 +55,25 @@ int main(int argc, char *argv[])
     FILE * ifile = fopen(data_file.c_str(), "r");
     measurement m;
 
+    int count = 0;
+    time_t tbegin = time(NULL);
+    time_t tend;
     while(!feof(ifile))
     {
+        count++;
         if(fscanf(ifile, "%u,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &m.house_id) < 7)
             continue;
 
         // send the message
         if(m.property == '0')
             write(connfd, &m, sizeof(m));
+
+        if(count == 1000000)
+        {
+            tend = time(NULL);
+            cout<<"Throughput: "<<count/(tend-tbegin+1)<<endl;
+            count = 0;
+        }
     }
 
     close(listenfd);
