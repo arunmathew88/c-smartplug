@@ -41,11 +41,11 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 			unsigned new_pos = binarySearch(0, size, mvalue);
 
 			// safety check
-			if(size >= NUM_PLUGS && ((data[pos]->plug_id != plug_id) || (data[pos]->house_id != house_id) || (data[pos]->hh_id != hh_id)))
-			{
-				cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
-				exit(-1);
-			}
+			// if(size >= NUM_PLUGS && ((data[pos]->plug_id != plug_id) || (data[pos]->house_id != house_id) || (data[pos]->hh_id != hh_id)))
+			// {
+			// 	cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
+			// 	exit(-1);
+			// }
 
 			if(pos == new_pos)
 				data[pos]->val = mvalue;
@@ -86,10 +86,10 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 				e->val = mvalue;
 			}
 			size++;
-		} else
-		{
-			cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
-			exit(-1);
+		// } else
+		// {
+		// 	cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
+		// 	exit(-1);
 		}
 	}
 }
