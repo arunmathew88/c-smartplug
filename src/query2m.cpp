@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <pthread.h>
 #include "common.h"
 #include "slidingmc.h"
 #include "scont.h"
@@ -50,11 +51,11 @@ typedef struct Node Node;
 
 struct ThreadData
 {
-    Node *mt;
+    Node *queue;
     int house_id;
 
     ThreadData(Node *n, int h)
-    : mt(n), house_id(h) {}
+    : queue(n), house_id(h) {}
 };
 
 void* solveHouse(void *threadarg)
@@ -66,7 +67,7 @@ void* solveHouse(void *threadarg)
     // SCont msc[NUM_WINDOWS];
     // Node* hr_begin_node[NUM_WINDOWS];
 
-    Node* current_node = my_data->mt;
+    Node* current_node = my_data->queue;
     while(true)
     {
         if(current_node->should_exit == true)
@@ -75,7 +76,6 @@ void* solveHouse(void *threadarg)
             break;
         } else if(current_node->next)
         {
-            cout<<my_data->house_id<<","<<current_node->mt.value<<endl;
             Node *node = current_node;
             current_node = current_node->next;
             delete node;
@@ -88,7 +88,9 @@ void* solveHouse(void *threadarg)
 void solveQuery2(measurement *m, Node** current_node)
 {
     current_node[m->house_id]->mt = *m;
-    current_node[m->house_id]->next = new Node();
+    Node *n = new Node();
+    current_node[m->house_id]->next = n;
+    current_node[m->house_id] = n;
 }
 
 // arg: broker_ip port
@@ -170,7 +172,7 @@ int main(int argc, char *argv[])
             unsigned nrest = read(sockfd, m, sizeof(measurement) - n);
             if(nrest + n == sizeof(measurement))
             {
-                memcpy(b+n, &m, nrest);cout<<m->timestamp<<endl;
+                memcpy(b+n, &m, nrest);
                 solveQuery2(m, current_node);
             } else
             {
@@ -192,7 +194,6 @@ int main(int argc, char *argv[])
     for(int h=0; h<NUM_HOUSE; h++)
     {
         current_node[h]->should_exit = true;
-        current_node[h]->next = new Node();
     }
 
     pthread_attr_destroy(&attr);
