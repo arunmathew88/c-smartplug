@@ -24,11 +24,15 @@ int SCont::binarySearch(int first, int last, float val)
 	}
 }
 
-void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mvalue, float old_val)
+int SCont::getSize()
+{
+	return size;
+}
+
+void SCont::insert(unsigned hh_id, unsigned plug_id, float mvalue, float old_val)
 {
 	if(size == 0)
 	{
-		data[0]->house_id = house_id;
 		data[0]->hh_id = hh_id;
 		data[0]->plug_id = plug_id;
 		data[0]->val = mvalue;
@@ -41,11 +45,11 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 			unsigned new_pos = binarySearch(0, size, mvalue);
 
 			// safety check
-			// if(size >= NUM_PLUGS && ((data[pos]->plug_id != plug_id) || (data[pos]->house_id != house_id) || (data[pos]->hh_id != hh_id)))
-			// {
-			// 	cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
-			// 	exit(-1);
-			// }
+			if(size >= NUM_PLUGS && ((data[pos]->plug_id != plug_id) || (data[pos]->hh_id != hh_id)))
+			{
+				cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
+				exit(-1);
+			}
 
 			if(pos == new_pos)
 				data[pos]->val = mvalue;
@@ -71,7 +75,6 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 
 			if(new_pos + 1 == size)
 			{
-				data[size]->house_id = house_id;
 				data[size]->hh_id = hh_id;
 				data[size]->plug_id = plug_id;
 				data[size]->val = mvalue;
@@ -80,16 +83,15 @@ void SCont::insert(unsigned house_id, unsigned hh_id, unsigned plug_id, float mv
 				Entry* e = data[size];
 				memmove(&(data[new_pos+2]), &(data[new_pos+1]), sizeof(Entry*)*(size-new_pos-1));
 				data[new_pos+1] = e;
-				e->house_id = house_id;
 				e->hh_id = hh_id;
 				e->plug_id = plug_id;
 				e->val = mvalue;
 			}
 			size++;
-		// } else
-		// {
-		// 	cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
-		// 	exit(-1);
+		} else
+		{
+			cout<<"should not reach on line: "<<__LINE__<<" in file: "<<__FILE__<<endl;
+			exit(-1);
 		}
 	}
 }
@@ -100,7 +102,7 @@ int SCont::getNumOfLargeNum(float threshold)
 		return 0;
 
 	if(threshold < data[0]->val)
-		return NUM_PLUGS;
+		return size;
 
 	if(threshold >= data[size-1]->val)
 		return 0;

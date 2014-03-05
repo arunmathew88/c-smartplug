@@ -48,8 +48,8 @@ typedef struct Node Node;
 
 unordered_map<unsigned, unordered_map<unsigned, SlidingMc> > mc[NUM_WINDOWS][NUM_HOUSE];
 SlidingMc global_median[NUM_WINDOWS];
-int num_percentage_more[NUM_WINDOWS] = {0};
-SCont msc[NUM_WINDOWS];
+int num_percentage_more[NUM_WINDOWS][NUM_HOUSE] = {0};
+SCont msc[NUM_WINDOWS][NUM_HOUSE];
 Node* hr_begin_node[NUM_WINDOWS];
 
 Node* data;
@@ -73,6 +73,8 @@ void solveQuery2(measurement *m)
             mc[i][house_id][household_id][plug_id];
             mc[i][m->house_id][m->household_id][m->plug_id];
 
+            float old_median = global_median[i].getMedian();
+
             unsigned ts = hr_begin_node[i]->mt.timestamp;
             if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
             {
@@ -82,7 +84,7 @@ void solveQuery2(measurement *m)
                 mc[i][house_id][household_id][plug_id].del(hr_begin_node[i]->mt.value);
 
                 float new_plug_median = mc[i][house_id][household_id][plug_id].getMedian();
-                msc[i].insert(house_id, household_id, plug_id, new_plug_median, old_plug_median);
+                msc[i][house_id].insert(household_id, plug_id, new_plug_median, old_plug_median);
 
                 Node* old_hr_begin_node = hr_begin_node[i];
                 hr_begin_node[i] = hr_begin_node[i]->next;
@@ -98,14 +100,34 @@ void solveQuery2(measurement *m)
                 mc[i][m->house_id][m->household_id][m->plug_id].insert(m->value);
 
                 float new_plug_median = mc[i][m->house_id][m->household_id][m->plug_id].getMedian();
-                msc[i].insert(m->house_id, m->household_id, m->plug_id, new_plug_median, old_plug_median);
+                msc[i][m->house_id].insert(m->household_id, m->plug_id, new_plug_median, old_plug_median);
             }
 
-            int old_percentage = num_percentage_more[i];
-            num_percentage_more[i] = msc[i].getNumOfLargeNum(global_median[i].getMedian());
+            float new_median = global_median[i].getMedian();
+            if(old_median == new_median)
+            {
+                int old_percentage = num_percentage_more[i][house_id];
+                num_percentage_more[i][house_id] = msc[i][house_id].getNumOfLargeNum(new_median);
 
-            if(old_percentage != num_percentage_more[i])
-                cout << ts << "," << ts + getWindowSize(ws) << "," << num_percentage_more[i]/(NUM_PLUGS/100.0) <<endl;
+                if(old_percentage != num_percentage_more[i][house_id])
+                    cout << ts << "," << ts + getWindowSize(ws) << "," << house_id << "," << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
+
+                old_percentage = num_percentage_more[i][m->house_id];
+                num_percentage_more[i][m->house_id] = msc[i][m->house_id].getNumOfLargeNum(new_median);
+
+                if(old_percentage != num_percentage_more[i][m->house_id])
+                    cout << ts << "," << ts + getWindowSize(ws) << "," << m->house_id << "," << num_percentage_more[i][m->house_id]/(msc[i][house_id].getSize()/100.0) <<endl;                
+            } else
+            {
+                for(int h=0; h<NUM_HOUSE; h++)
+                {
+                    int old_percentage = num_percentage_more[i][h];
+                    num_percentage_more[i][h] = msc[i][h].getNumOfLargeNum(new_median);
+
+                    if(old_percentage != num_percentage_more[i][h])
+                        cout << ts << "," << ts + getWindowSize(ws) << "," << h << "," << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
+                }
+            }
 
             if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
                 break;

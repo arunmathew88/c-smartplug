@@ -95,11 +95,11 @@ int SlidingMc::binarySearch(int first, int last, float val)
 
 void SlidingMc::addNewBin(int pos, Bin b)
 {
-	// if(pos+1 >= num_bins)
-	// {
-	// 	cout<<"should not reach at "<<__LINE__<<"in file: "<<__FILE__<<endl;
-	// 	exit(-1);
-	// }
+	if(pos+1 >= num_bins)
+	{
+		cout<<"should not reach at "<<__LINE__<<"in file: "<<__FILE__<<endl;
+		exit(-1);
+	}
 
 	if(cur_median_index > pos)
 	{
@@ -127,10 +127,10 @@ void SlidingMc::insert(float val)
 
 		cum_sum++;
 		cur_median_index++;
-	// } else if(pos > num_bins)
-	// {
-	// 	cout<<"error occured: binarySearch is wrong!"<<endl;
-	// 	exit(-1);
+	} else if(pos > num_bins)
+	{
+		cout<<"error occured: binarySearch is wrong!"<<endl;
+		exit(-1);
 	} else if(pos == num_bins)
 	{
 		bins[pos] = Bin(val, 1);
@@ -190,11 +190,11 @@ void SlidingMc::insert(float val)
 void SlidingMc::del(float val)
 {
 	int pos = binarySearch(val);
-	// if(pos < 0)
-	// {
-	// 	cout<<"should not reach here!"<<endl;
-	// 	exit(-1);
-	// }
+	if(pos < 0)
+	{
+		cout<<"should not reach here!"<<endl;
+		exit(-1);
+	}
 
 	if(pos == num_bins)
 		pos--;
