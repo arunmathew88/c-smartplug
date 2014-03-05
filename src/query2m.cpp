@@ -48,15 +48,24 @@ struct Node
 };
 typedef struct Node Node;
 
+enum TypeEvent
+{
+    INSERT = 0,
+    DELETE,
+    BOTH,
+    EXIT,
+    NONE
+}
+
 struct QueueNode
 {
     measurement mt;
     QueueNode* next;
     float global_median;
-    bool should_exit;
+    TypeEvent type;
 
-    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, bool se=false)
-    : mt(m), next(n), global_median(gm), should_exit(se) {}
+    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, TypeEvent e=NONE)
+    : mt(m), next(n), global_median(gm), type(t) {}
 };
 typedef struct QueueNode QueueNode;
 
@@ -84,7 +93,7 @@ void* solveHouse(void *threadarg)
             QueueNode *node = ch_node;
             ch_node = ch_node->next;
             delete node;
-        } else if(ch_node->should_exit == true)
+        } else if(ch_node->type == EXIT)
         {
             delete ch_node;
             break;
@@ -130,7 +139,10 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
 
             if(fabs(new_median - old_median) > 0.0001)
             {
-                cout<<old_median<<" "<<new_median<<endl;
+                for(int h=0; h<NUM_HOUSE; h++)
+                {
+
+                }
             } else
             {
 
