@@ -41,21 +41,31 @@ unsigned getWindowSize(Window ws)
 struct Node
 {
     measurement mt;
-    float global_median;
     Node* next;
-    bool should_exit;
 
-    Node(measurement m = measurement(), float gm=-1, Node* n=NULL, bool se=false)
-    : mt(m), global_median(gm), next(n), should_exit(se) {}
+    Node(measurement m = measurement(), Node* n=NULL)
+    : mt(m), next(n) {}
 };
 typedef struct Node Node;
 
+struct QueueNode
+{
+    measurement mt;
+    QueueNode* next;
+    float global_median;
+    bool should_exit;
+
+    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, bool se=false)
+    : mt(m), next(n), global_median(gm), should_exit(se) {}
+};
+typedef struct QueueNode QueueNode;
+
 struct ThreadData
 {
-    Node *queue;
+    QueueNode *queue;
     int house_id;
 
-    ThreadData(Node *q, int h)
+    ThreadData(QueueNode *q, int h)
     : queue(q), house_id(h) {}
 };
 
@@ -64,14 +74,14 @@ void* solveHouse(void *threadarg)
     struct ThreadData *my_data = (struct ThreadData*) threadarg;
     sleep(2);
 
-    Node* ch_node = my_data->queue;
+    QueueNode* ch_node = my_data->queue;
     int house_id = my_data->house_id;
 
     while(true)
     {
         if(ch_node->next != NULL)
         {
-            Node *node = ch_node;
+            QueueNode *node = ch_node;
             ch_node = ch_node->next;
             delete node;
         } else if(ch_node->should_exit == true)
@@ -88,7 +98,7 @@ Node* current_node;
 Node* hr_begin_node[NUM_WINDOWS];
 SlidingMc global_median[NUM_WINDOWS];
 
-void solveQuery2(measurement *m, Node** current_house_node)
+void solveQuery2(measurement *m, QueueNode** current_house_node)
 {
     current_node->mt = *m;
     current_node->next = new Node();
@@ -119,7 +129,12 @@ void solveQuery2(measurement *m, Node** current_house_node)
             float new_median = global_median[i].getMedian();
 
             if(fabs(new_median - old_median) > 0.0001)
-                cout<<new_median<<","<<old_median<<endl;
+            {
+                cout<<old_median<<" "<<new_median<<endl;
+            } else
+            {
+
+            }
 
             if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
                 break;
@@ -130,7 +145,7 @@ void solveQuery2(measurement *m, Node** current_house_node)
 
     // passing event to house threads
     current_house_node[m->house_id]->mt = *m;
-    Node *n = new Node();
+    QueueNode *n = new QueueNode();
     current_house_node[m->house_id]->next = n;
     current_house_node[m->house_id] = n;
 }
@@ -176,10 +191,10 @@ int main(int argc, char *argv[])
     }
 
     // house queues
-    Node **current_house_node;
-    current_house_node = new Node*[NUM_HOUSE];
+    QueueNode **current_house_node;
+    current_house_node = new QueueNode*[NUM_HOUSE];
     for(int i=0; i<NUM_HOUSE; i++)
-        current_house_node[i] = new Node();
+        current_house_node[i] = new QueueNode();
 
     // creating threads
     pthread_t threads[NUM_HOUSE];
