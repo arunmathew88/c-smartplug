@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <cmath>
 #include "common.h"
 #include "slidingmc.h"
 #include "scont.h"
@@ -63,10 +64,6 @@ void* solveHouse(void *threadarg)
     struct ThreadData *my_data = (struct ThreadData*) threadarg;
     sleep(2);
 
-    // unordered_map<unsigned, unordered_map<unsigned, SlidingMc> > mc[NUM_WINDOWS];
-    // int num_percentage_more[NUM_WINDOWS] = {0};
-    // SCont msc[NUM_WINDOWS];
-    // Node* hr_begin_node[NUM_WINDOWS];
     Node* ch_node = my_data->queue;
     int house_id = my_data->house_id;
 
@@ -87,8 +84,51 @@ void* solveHouse(void *threadarg)
     pthread_exit(NULL);
 }
 
+Node* current_node;
+Node* hr_begin_node[NUM_WINDOWS];
+SlidingMc global_median[NUM_WINDOWS];
+
 void solveQuery2(measurement *m, Node** current_house_node)
 {
+    current_node->mt = *m;
+    current_node->next = new Node();
+
+    for(int i=0; i<NUM_WINDOWS; i++)
+    {
+        Window ws = (Window)i;
+        while(true)
+        {
+            float old_median = global_median[i].getMedian();
+
+            unsigned ts = hr_begin_node[i]->mt.timestamp;
+            if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
+            {
+                global_median[i].del(hr_begin_node[i]->mt.value);
+
+                Node* old_hr_begin_node = hr_begin_node[i];
+                hr_begin_node[i] = hr_begin_node[i]->next;
+                if(i == NUM_WINDOWS-1)
+                    delete old_hr_begin_node;
+            }
+
+            if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
+            {
+                global_median[i].insert(m->value);
+            }
+
+            float new_median = global_median[i].getMedian();
+
+            if(fabs(new_median - old_median) > 0.0001)
+                cout<<new_median<<","<<old_median<<endl;
+
+            if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
+                break;
+        }
+    }
+
+    current_node = current_node->next;
+
+    // passing event to house threads
     current_house_node[m->house_id]->mt = *m;
     Node *n = new Node();
     current_house_node[m->house_id]->next = n;
@@ -135,7 +175,7 @@ int main(int argc, char *argv[])
        return 1;
     }
 
-    // init
+    // house queues
     Node **current_house_node;
     current_house_node = new Node*[NUM_HOUSE];
     for(int i=0; i<NUM_HOUSE; i++)
@@ -159,6 +199,11 @@ int main(int argc, char *argv[])
             exit(-1);
         }
     }
+
+    // init
+    current_node = new Node();
+    for(int i=0; i<NUM_WINDOWS; i++)
+        hr_begin_node[i] = current_node;
 
     measurement *m = new measurement;
     while((n = read(sockfd, m, sizeof(measurement))) > 0)
