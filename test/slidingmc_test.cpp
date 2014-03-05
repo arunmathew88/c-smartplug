@@ -48,7 +48,7 @@ class SlidingMcTest : public CppUnit::TestFixture
 	{
 		for(float i=1; i<9; i++)
 			sm->insert(i);
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(4.5, sm->getMedian(), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(4, sm->getMedian(), 0.00001);
 	}
 
 
@@ -116,6 +116,26 @@ class SlidingMcTest : public CppUnit::TestFixture
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(-1, sm->getMedian(), 0.00001);
 	}
 
+	void test_del3()
+	{
+		for(float i=1; i<80000; i++)
+			sm->insert(i);
+		for(float i=1; i<40000; i++)
+			sm->del(i);
+
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(59794.5, sm->getMedian(), 0.00001);
+	}
+
+	void test_del4()
+	{
+		for(float i=1; i<80000; i++)
+			sm->insert(i);
+		for(float i=40001; i<80000; i++)
+			sm->del(i);
+
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(20121, sm->getMedian(), 0.00001);
+	}
+
 	CPPUNIT_TEST_SUITE(SlidingMcTest);
 	CPPUNIT_TEST(test1);
 	CPPUNIT_TEST(test2);
@@ -129,6 +149,8 @@ class SlidingMcTest : public CppUnit::TestFixture
 	CPPUNIT_TEST(test_random3);
 	CPPUNIT_TEST(test_del1);
 	CPPUNIT_TEST(test_del2);
+	CPPUNIT_TEST(test_del3);
+	CPPUNIT_TEST(test_del4);
 	CPPUNIT_TEST_SUITE_END();
 };
 

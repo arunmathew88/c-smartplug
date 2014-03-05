@@ -53,12 +53,12 @@ float SlidingMc::findMedian()
 
 	if(cur_median_index == num_bins-1)
 		return bins[cur_median_index].val;
-	// else if(cur_median_index == 0)
-	// 	return (bins[cur_median_index].val + bins[cur_median_index+1].val)/2;
-	// else if(size == cum_sum*2)
-	// 	return (bins[cur_median_index-1].val/4
-	// 			+ bins[cur_median_index].val/2
-	// 			+ bins[cur_median_index+1].val/4);
+	else if(cur_median_index == 0)
+		return (bins[cur_median_index].val + bins[cur_median_index+1].val)/2;
+	else if(size == cum_sum*2)
+		return (bins[cur_median_index-1].val/4
+				+ bins[cur_median_index].val/2
+				+ bins[cur_median_index+1].val/4);
 	else
 		return (bins[cur_median_index].val + bins[cur_median_index+1].val)/2;
 }
@@ -104,7 +104,7 @@ void SlidingMc::addNewBin(int pos, Bin b)
 	if(cur_median_index > pos)
 	{
 		cur_median_index++;
-		cum_sum += b.val;
+		cum_sum += b.freq;
 	}
 
 	memmove(&(bins[pos+2]), &(bins[pos+1]), sizeof(Bin)*(num_bins-pos-1));
@@ -135,9 +135,6 @@ void SlidingMc::insert(float val)
 	{
 		bins[pos] = Bin(val, 1);
 		num_bins++;
-
-		if(cur_median_index == num_bins)
-			cum_sum++;
 	} else
 	{
 		if(bins[pos].val == val || MAX_BINS <= num_bins)
