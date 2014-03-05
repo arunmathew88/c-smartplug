@@ -52,7 +52,6 @@ int num_percentage_more[NUM_WINDOWS][NUM_HOUSE] = {0};
 SCont msc[NUM_WINDOWS][NUM_HOUSE];
 Node* hr_begin_node[NUM_WINDOWS];
 
-Node* data;
 Node* current_node;
 
 void solveQuery2(measurement *m)
@@ -178,10 +177,9 @@ int main(int argc, char *argv[])
     }
 
     // init
-    data = new Node();
-    current_node = data;
+    current_node = new Node();
     for(int i=0; i<NUM_WINDOWS; i++)
-        hr_begin_node[i] = data;
+        hr_begin_node[i] = current_node;
 
     measurement *m = new measurement;
     while((n = read(sockfd, m, sizeof(measurement))) > 0)

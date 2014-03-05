@@ -16,7 +16,7 @@ _DEPS = slidingmc.h common.h scont.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 # object files
-_OBJ1 = slidingmc.o scont.o query2.o
+_OBJ1 = slidingmc.o scont.o query2m.o
 OBJ1 = $(patsubst %,$(ODIR)/%,$(_OBJ1))
 
 _OBJ2 = broker.o
