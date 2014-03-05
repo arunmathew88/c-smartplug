@@ -40,12 +40,12 @@ unsigned getWindowSize(Window ws)
 struct Node
 {
     measurement mt;
-    Node* next;
     float global_median;
+    Node* next;
     bool should_exit;
 
-    Node(measurement m = measurement(), Node* n=NULL, float gm=-1, bool se=false)
-    : mt(m), next(n), global_median(gm), should_exit(se) {}
+    Node(measurement m = measurement(), float gm=-1, Node* n=NULL, bool se=false)
+    : mt(m), global_median(gm), next(n), should_exit(se) {}
 };
 typedef struct Node Node;
 
@@ -54,43 +54,45 @@ struct ThreadData
     Node *queue;
     int house_id;
 
-    ThreadData(Node *n, int h)
-    : queue(n), house_id(h) {}
+    ThreadData(Node *q, int h)
+    : queue(q), house_id(h) {}
 };
 
 void* solveHouse(void *threadarg)
 {
     struct ThreadData *my_data = (struct ThreadData*) threadarg;
+    sleep(2);
 
     // unordered_map<unsigned, unordered_map<unsigned, SlidingMc> > mc[NUM_WINDOWS];
     // int num_percentage_more[NUM_WINDOWS] = {0};
     // SCont msc[NUM_WINDOWS];
     // Node* hr_begin_node[NUM_WINDOWS];
+    Node* ch_node = my_data->queue;
+    int house_id = my_data->house_id;
 
-    Node* current_node = my_data->queue;
     while(true)
     {
-        if(current_node->should_exit == true)
+        if(ch_node->next != NULL)
         {
-            delete current_node;
-            break;
-        } else if(current_node->next)
-        {
-            Node *node = current_node;
-            current_node = current_node->next;
+            Node *node = ch_node;
+            ch_node = ch_node->next;
             delete node;
+        } else if(ch_node->should_exit == true)
+        {
+            delete ch_node;
+            break;
         }
     }
 
     pthread_exit(NULL);
 }
 
-void solveQuery2(measurement *m, Node** current_node)
+void solveQuery2(measurement *m, Node** current_house_node)
 {
-    current_node[m->house_id]->mt = *m;
+    current_house_node[m->house_id]->mt = *m;
     Node *n = new Node();
-    current_node[m->house_id]->next = n;
-    current_node[m->house_id] = n;
+    current_house_node[m->house_id]->next = n;
+    current_house_node[m->house_id] = n;
 }
 
 // arg: broker_ip port
@@ -134,10 +136,10 @@ int main(int argc, char *argv[])
     }
 
     // init
-    Node **current_node;
-    current_node = new Node*[NUM_HOUSE];
+    Node **current_house_node;
+    current_house_node = new Node*[NUM_HOUSE];
     for(int i=0; i<NUM_HOUSE; i++)
-        current_node[i] = new Node();
+        current_house_node[i] = new Node();
 
     // creating threads
     pthread_t threads[NUM_HOUSE];
@@ -149,7 +151,7 @@ int main(int argc, char *argv[])
 
     for(int h=0; h<NUM_HOUSE; h++)
     {
-        td[h] = new struct ThreadData(current_node[h], h);
+        td[h] = new struct ThreadData(current_house_node[h], h);
         int rc = pthread_create(&threads[h], NULL, solveHouse, (void *)td[h]);
         if(rc)
         {
@@ -163,7 +165,7 @@ int main(int argc, char *argv[])
     {
         if(n == sizeof(measurement))
         {
-            solveQuery2(m, current_node);
+            solveQuery2(m, current_house_node);
         } else if(n < sizeof(measurement))
         {
             char b[sizeof(measurement)];
@@ -173,17 +175,17 @@ int main(int argc, char *argv[])
             if(nrest + n == sizeof(measurement))
             {
                 memcpy(b+n, &m, nrest);
-                solveQuery2(m, current_node);
+                solveQuery2(m, current_house_node);
             } else
             {
-                cout<<"Error: should not reah here lineno:"<<__LINE__<<"!"<<endl;
+                cout<<"Error: should not reach here lineno:"<<__LINE__<<"!"<<endl;
                 delete m;
                 close(sockfd);
                 exit(-1);
             }
         } else
         {
-            cout<<"Error: should not reah here lineno:"<<__LINE__<<"!"<<endl;
+            cout<<"Error: should not reach here lineno:"<<__LINE__<<"!"<<endl;
             delete m;
             close(sockfd);
             exit(-1);
@@ -193,7 +195,7 @@ int main(int argc, char *argv[])
     // send exit signal to threads
     for(int h=0; h<NUM_HOUSE; h++)
     {
-        current_node[h]->should_exit = true;
+        current_house_node[h]->should_exit = true;
     }
 
     pthread_attr_destroy(&attr);
@@ -208,7 +210,7 @@ int main(int argc, char *argv[])
         delete td[h];
     }
 
-    delete[] current_node;
+    delete[] current_house_node;
     delete m;
     close(sockfd);
     return 0;
