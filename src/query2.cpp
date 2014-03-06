@@ -57,8 +57,8 @@ Node* current_node;
 
 void solveQuery2(measurement *m)
 {
-    // struct timeval tbegin, tend;
-    // gettimeofday(&tbegin, NULL);
+    struct timeval tbegin, tend;
+    gettimeofday(&tbegin, NULL);
 
     current_node->mt = *m;
     current_node->next = new Node();
@@ -116,18 +116,18 @@ void solveQuery2(measurement *m)
                 {
                     if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
                     {
-                        // gettimeofday(&tend, NULL);
-                        // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
-                        long int times = (long int)current_node->mt.timestamp;
-                        cout << (times+1-getWindowSize(ws)) << "," << times << "," << house_id << ","
-                             << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
+                        gettimeofday(&tend, NULL);
+                        cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                        // long int times = (long int)current_node->mt.timestamp;
+                        // cout << (times+1-getWindowSize(ws)) << "," << times << "," << house_id << ","
+                        //      << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
                     }
                     else
                     {
-                        // gettimeofday(&tend, NULL);
-                        // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
-                        cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << house_id << ","
-                             << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
+                        gettimeofday(&tend, NULL);
+                        cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                        // cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << house_id << ","
+                        //      << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
                     }
                 }
 
@@ -138,18 +138,18 @@ void solveQuery2(measurement *m)
                 {
                     if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
                     {
-                        // gettimeofday(&tend, NULL);
-                        // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
-                        long int times = (long int)current_node->mt.timestamp;
-                        cout << (times+1-getWindowSize(ws)) << "," << times << "," << m->house_id << ","
-                             << num_percentage_more[i][m->house_id]/(msc[i][m->house_id].getSize()/100.0) <<endl;
+                        gettimeofday(&tend, NULL);
+                        cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                        // long int times = (long int)current_node->mt.timestamp;
+                        // cout << (times+1-getWindowSize(ws)) << "," << times << "," << m->house_id << ","
+                        //      << num_percentage_more[i][m->house_id]/(msc[i][m->house_id].getSize()/100.0) <<endl;
                     }
                     else
                     {
-                        // gettimeofday(&tend, NULL);
-                        // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
-                        cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << m->house_id << ","
-                             << num_percentage_more[i][m->house_id]/(msc[i][m->house_id].getSize()/100.0) <<endl;
+                        gettimeofday(&tend, NULL);
+                        cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                        // cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << m->house_id << ","
+                        //      << num_percentage_more[i][m->house_id]/(msc[i][m->house_id].getSize()/100.0) <<endl;
                     }
                 }
             } else
@@ -163,18 +163,18 @@ void solveQuery2(measurement *m)
                     {
                         if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
                         {
-                            // gettimeofday(&tend, NULL);
-                            // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
-                            long int times = (long int)current_node->mt.timestamp;
-                            cout << (times+1-getWindowSize(ws)) << "," << times << "," << h << ","
-                                 << num_percentage_more[i][h]/(msc[i][h].getSize()/100.0) <<endl;
+                            gettimeofday(&tend, NULL);
+                            cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                            // long int times = (long int)current_node->mt.timestamp;
+                            // cout << (times+1-getWindowSize(ws)) << "," << times << "," << h << ","
+                            //      << num_percentage_more[i][h]/(msc[i][h].getSize()/100.0) <<endl;
                         }
                         else
                         {
-                            // gettimeofday(&tend, NULL);
-                            // cout<<(tbegin.tv_sec-tend.tv_sec)*1000000 + tbegin.tv_usec-tend.tv_usec<<endl;
-                            cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << h << ","
-                                 << num_percentage_more[i][h]/(msc[i][h].getSize()/100.0) <<endl;
+                            gettimeofday(&tend, NULL);
+                            cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                            // cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << h << ","
+                            //      << num_percentage_more[i][h]/(msc[i][h].getSize()/100.0) <<endl;
                         }
                     }
                 }
