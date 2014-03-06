@@ -72,6 +72,7 @@ typedef struct QueueNode QueueNode;
 
 // shared variables
 pthread_mutex_t mutex[NUM_HOUSE];
+sem_t empty[NUM_HOUSE];
 
 struct ThreadData
 {
@@ -105,6 +106,12 @@ void* solveHouse(void *threadarg)
             QueueNode *node = ch_node;
             ch_node = ch_node->next;
             delete node;
+        } else
+        {
+            struct timespec ts;
+            ts.tv_sec += 2;
+            clock_gettime(CLOCK_REALTIME, &ts);
+            sem_timedwait(&empty[house_id], &ts);
         }
     }
 
@@ -144,7 +151,7 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
 
             float new_median = global_median[i].getMedian();
 
-            if(fabs(new_median - old_median) > 0.0001)
+            if(fabs(new_median - old_median) > 0.001)
             {
                 for(int h=0; h<NUM_HOUSE; h++)
                 {
@@ -170,6 +177,8 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
     pthread_mutex_lock(&mutex[m->house_id]);
     current_house_node[m->house_id]->type = INSERT;
     pthread_mutex_unlock(&mutex[m->house_id]);
+
+    sem_post(&empty[m->house_id]);
     current_house_node[m->house_id] = n;
 }
 
@@ -220,6 +229,11 @@ int main(int argc, char *argv[])
     {
         current_house_node[i] = new QueueNode();
         pthread_mutex_init(&mutex[i], NULL);
+        if(sem_init(&empty[i], 0, 0) == -1)
+        {
+            cout<<"unable to initialise semaphore!"<<endl;
+            exit(-2);
+        }
     }
 
     // creating threads
@@ -284,6 +298,7 @@ int main(int argc, char *argv[])
         pthread_mutex_lock(&mutex[h]);
         current_house_node[h]->type = EXIT;
         pthread_mutex_unlock(&mutex[h]);
+        sem_post(&empty[h]);
     }
 
     pthread_attr_destroy(&attr);
