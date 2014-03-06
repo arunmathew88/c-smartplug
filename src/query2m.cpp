@@ -12,6 +12,7 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <cmath>
+#include <semaphore.h>
 #include "common.h"
 #include "slidingmc.h"
 #include "scont.h"
@@ -55,7 +56,7 @@ enum TypeEvent
     BOTH,
     EXIT,
     NONE
-}
+};
 
 struct QueueNode
 {
@@ -64,10 +65,13 @@ struct QueueNode
     float global_median;
     TypeEvent type;
 
-    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, TypeEvent e=NONE)
+    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, TypeEvent t=NONE)
     : mt(m), next(n), global_median(gm), type(t) {}
 };
 typedef struct QueueNode QueueNode;
+
+// shared variables
+pthread_mutex_t mutex[NUM_HOUSE];
 
 struct ThreadData
 {
@@ -81,28 +85,33 @@ struct ThreadData
 void* solveHouse(void *threadarg)
 {
     struct ThreadData *my_data = (struct ThreadData*) threadarg;
-    sleep(2);
 
     QueueNode* ch_node = my_data->queue;
     int house_id = my_data->house_id;
 
     while(true)
     {
-        if(ch_node->next != NULL)
+        TypeEvent te;
+        pthread_mutex_lock(&mutex[house_id]);
+        te = ch_node->type;
+        pthread_mutex_unlock(&mutex[house_id]);
+
+        if(te == EXIT)
+        {
+            delete ch_node;
+            break;
+        } else if(te != NONE)
         {
             QueueNode *node = ch_node;
             ch_node = ch_node->next;
             delete node;
-        } else if(ch_node->type == EXIT)
-        {
-            delete ch_node;
-            break;
         }
     }
 
     pthread_exit(NULL);
 }
 
+// main thread gloabls
 Node* current_node;
 Node* hr_begin_node[NUM_WINDOWS];
 SlidingMc global_median[NUM_WINDOWS];
@@ -131,9 +140,7 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
             }
 
             if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
-            {
                 global_median[i].insert(m->value);
-            }
 
             float new_median = global_median[i].getMedian();
 
@@ -157,8 +164,12 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
 
     // passing event to house threads
     current_house_node[m->house_id]->mt = *m;
+
     QueueNode *n = new QueueNode();
     current_house_node[m->house_id]->next = n;
+    pthread_mutex_lock(&mutex[m->house_id]);
+    current_house_node[m->house_id]->type = INSERT;
+    pthread_mutex_unlock(&mutex[m->house_id]);
     current_house_node[m->house_id] = n;
 }
 
@@ -206,7 +217,10 @@ int main(int argc, char *argv[])
     QueueNode **current_house_node;
     current_house_node = new QueueNode*[NUM_HOUSE];
     for(int i=0; i<NUM_HOUSE; i++)
+    {
         current_house_node[i] = new QueueNode();
+        pthread_mutex_init(&mutex[i], NULL);
+    }
 
     // creating threads
     pthread_t threads[NUM_HOUSE];
@@ -267,7 +281,9 @@ int main(int argc, char *argv[])
     // send exit signal to threads
     for(int h=0; h<NUM_HOUSE; h++)
     {
-        current_house_node[h]->should_exit = true;
+        pthread_mutex_lock(&mutex[h]);
+        current_house_node[h]->type = EXIT;
+        pthread_mutex_unlock(&mutex[h]);
     }
 
     pthread_attr_destroy(&attr);
@@ -280,6 +296,7 @@ int main(int argc, char *argv[])
             exit(-1);
         }
         delete td[h];
+        pthread_mutex_destroy(&mutex[h]);
     }
 
     delete[] current_house_node;
