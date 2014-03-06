@@ -1,0 +1,1 @@
+g++ test/slidingmc_binsize.cpp src/mc.cpp src/slidingmc.cpp -std=c++0x -Iinclude/ -o bin/slidingmc_binsize
