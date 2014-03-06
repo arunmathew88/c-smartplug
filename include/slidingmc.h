@@ -6,7 +6,7 @@
 #include <cstring>
 using namespace std;
 
-#define MAX_BINS 1200
+#define MAXNUM_BINS 1200
 
 struct Bin
 {
@@ -34,7 +34,8 @@ class SlidingMc
 	void insToMc(float val);
 
   public:
-	SlidingMc(int max=MAX_BINS);
+  	SlidingMc();
+	SlidingMc(int max);
 	~SlidingMc();
 	SlidingMc(const SlidingMc &smc);
 	float getMedian();

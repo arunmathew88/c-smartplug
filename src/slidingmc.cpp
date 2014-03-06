@@ -13,6 +13,19 @@ SlidingMc::SlidingMc(int max)
 	cum_sum = 0;
 }
 
+SlidingMc::SlidingMc()
+{
+	max_bins = MAXNUM_BINS;
+
+	size = 0;
+	num_bins = 0;
+	bins = new Bin[max_bins+2];
+	bins = &(bins[1]);
+
+	cur_median_index = -1;
+	cum_sum = 0;
+}
+
 SlidingMc::SlidingMc(const SlidingMc &smc)
 {
 	size = smc.size;
