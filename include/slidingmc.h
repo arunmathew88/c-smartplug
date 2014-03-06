@@ -35,7 +35,6 @@ class SlidingMc
 
   public:
   	SlidingMc();
-	SlidingMc(int max);
 	~SlidingMc();
 	SlidingMc(const SlidingMc &smc);
 	float getMedian();
