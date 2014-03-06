@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
 #include "common.h"
 #include "slidingmc.h"
 #include "scont.h"
@@ -56,6 +57,9 @@ Node* current_node;
 
 void solveQuery2(measurement *m)
 {
+    // struct timeval tbegin, tend;
+    // gettimeofday(&tbegin, NULL);
+
     current_node->mt = *m;
     current_node->next = new Node();
 
@@ -109,13 +113,45 @@ void solveQuery2(measurement *m)
                 num_percentage_more[i][house_id] = msc[i][house_id].getNumOfLargeNum(new_median);
 
                 if(old_percentage != num_percentage_more[i][house_id])
-                    cout << ts << "," << ts + getWindowSize(ws) << "," << house_id << "," << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
+                {
+                    if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
+                    {
+                        // gettimeofday(&tend, NULL);
+                        // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                        long int times = (long int)current_node->mt.timestamp;
+                        cout << (times+1-getWindowSize(ws)) << "," << times << "," << house_id << ","
+                             << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
+                    }
+                    else
+                    {
+                        // gettimeofday(&tend, NULL);
+                        // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                        cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << house_id << ","
+                             << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
+                    }
+                }
 
                 old_percentage = num_percentage_more[i][m->house_id];
                 num_percentage_more[i][m->house_id] = msc[i][m->house_id].getNumOfLargeNum(new_median);
 
                 if(old_percentage != num_percentage_more[i][m->house_id])
-                    cout << ts << "," << ts + getWindowSize(ws) << "," << m->house_id << "," << num_percentage_more[i][m->house_id]/(msc[i][house_id].getSize()/100.0) <<endl;                
+                {
+                    if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
+                    {
+                        // gettimeofday(&tend, NULL);
+                        // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                        long int times = (long int)current_node->mt.timestamp;
+                        cout << (times+1-getWindowSize(ws)) << "," << times << "," << m->house_id << ","
+                             << num_percentage_more[i][m->house_id]/(msc[i][m->house_id].getSize()/100.0) <<endl;
+                    }
+                    else
+                    {
+                        // gettimeofday(&tend, NULL);
+                        // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                        cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << m->house_id << ","
+                             << num_percentage_more[i][m->house_id]/(msc[i][m->house_id].getSize()/100.0) <<endl;
+                    }
+                }
             } else
             {
                 for(int h=0; h<NUM_HOUSE; h++)
@@ -124,7 +160,23 @@ void solveQuery2(measurement *m)
                     num_percentage_more[i][h] = msc[i][h].getNumOfLargeNum(new_median);
 
                     if(old_percentage != num_percentage_more[i][h])
-                        cout << ts << "," << ts + getWindowSize(ws) << "," << h << "," << num_percentage_more[i][house_id]/(msc[i][house_id].getSize()/100.0) <<endl;
+                    {
+                        if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
+                        {
+                            // gettimeofday(&tend, NULL);
+                            // cout<<(tend.tv_sec-tbegin.tv_sec)*1000000 + tend.tv_usec-tbegin.tv_usec<<endl;
+                            long int times = (long int)current_node->mt.timestamp;
+                            cout << (times+1-getWindowSize(ws)) << "," << times << "," << h << ","
+                                 << num_percentage_more[i][h]/(msc[i][h].getSize()/100.0) <<endl;
+                        }
+                        else
+                        {
+                            // gettimeofday(&tend, NULL);
+                            // cout<<(tbegin.tv_sec-tend.tv_sec)*1000000 + tbegin.tv_usec-tend.tv_usec<<endl;
+                            cout << (ts+1) << "," << (ts + getWindowSize(ws)) << "," << h << ","
+                                 << num_percentage_more[i][h]/(msc[i][h].getSize()/100.0) <<endl;
+                        }
+                    }
                 }
             }
 
@@ -195,7 +247,7 @@ int main(int argc, char *argv[])
             unsigned nrest = read(sockfd, m, sizeof(measurement) - n);
             if(nrest + n == sizeof(measurement))
             {
-                memcpy(b+n, &m, nrest);cout<<m->timestamp<<endl;
+                memcpy(b+n, &m, nrest);
                 solveQuery2(m);
             } else
             {
