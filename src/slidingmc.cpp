@@ -1,10 +1,12 @@
 #include "slidingmc.h"
 
-SlidingMc::SlidingMc()
+SlidingMc::SlidingMc(int max)
 {
+	max_bins = max;
+
 	size = 0;
 	num_bins = 0;
-	bins = new Bin[MAX_BINS+2];
+	bins = new Bin[max_bins+2];
 	bins = &(bins[1]);
 
 	cur_median_index = -1;
@@ -16,7 +18,7 @@ SlidingMc::SlidingMc(const SlidingMc &smc)
 	size = smc.size;
 	num_bins = smc.num_bins;
 
-	bins = new Bin[MAX_BINS+2];
+	bins = new Bin[max_bins+2];
 	bins = &(bins[1]);
 
 	cur_median_index = smc.cur_median_index;
@@ -137,21 +139,70 @@ void SlidingMc::insert(float val)
 		num_bins++;
 	} else
 	{
-		if(bins[pos].val == val || MAX_BINS <= num_bins)
+		if(bins[pos].val == val || max_bins <= num_bins)
 		{
 			if(pos <= cur_median_index)
 				cum_sum++;
 			bins[pos].freq++;
+
+			if(num_bins >=2 && bins[pos].freq > 10*size/num_bins)
+			{
+				if(pos == 0)
+				{
+					bins = bins-1;
+					flag = true;
+					cur_median_index++;
+
+					bins[0].val = bins[1].val;
+					bins[1].val = (bins[0].val + bins[2].val)/2;
+					bins[0].freq = bins[1].freq/2;
+					bins[1].freq -= bins[0].freq;
+				} else if(pos == num_bins-1)
+				{
+					bins[num_bins].val = bins[num_bins-1].val;
+					bins[num_bins-1].val = (bins[num_bins-2].val + bins[num_bins].val)/2;
+					bins[num_bins].freq = bins[num_bins-1].freq/2;
+					bins[num_bins-1].freq -= bins[num_bins].freq;
+
+					if(cur_median_index == num_bins-1)
+						cur_median_index++;
+				} else if(pos*2 < num_bins)
+				{
+					memmove(bins-1, bins, sizeof(Bin)*pos);
+					bins = bins-1;
+					flag = true;
+
+					if(cur_median_index >= pos)
+						cur_median_index++;
+
+					bins[pos].val = (bins[pos-1].val + bins[pos+1].val)/2;
+					bins[pos].freq = bins[pos+1].freq/2;
+					bins[pos+1].freq -= bins[pos].freq;
+				} else
+				{
+					memmove(&(bins[pos+2]), &(bins[pos+1]), sizeof(Bin)*(num_bins-pos-1));
+
+					bins[pos+1].val = bins[pos].val;
+					bins[pos].val = (bins[pos-1].val + bins[pos+1].val)/2;
+					bins[pos+1].freq = bins[pos].freq/2;
+					bins[pos].freq -= bins[pos+1].freq;
+
+					if(cur_median_index >= pos)
+						cur_median_index++;
+				}
+
+				num_bins++;
+			}
 		}
 		else
 			addNewBin(pos, Bin(val, 1));
 	}
 
 	// merge bins
-	if(num_bins == MAX_BINS+1)
+	if(num_bins == max_bins+1)
 	{
 		int min = bins[0].freq + bins[1].freq, sum, index=0;
-		for(int i=1; i<MAX_BINS; i++)
+		for(int i=1; i<max_bins; i++)
 		{
 			sum = bins[i].freq + bins[i+1].freq;
 			if(min > sum)
