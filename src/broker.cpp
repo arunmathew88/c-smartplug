@@ -1,3 +1,4 @@
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -86,7 +87,12 @@ int main(int argc, char *argv[])
 	FILE * ifile = fopen(data_file.c_str(), "r");
 	measurement m;
 
-	unsigned long ptime = time(NULL), ctime, count=0, stat=atol(argv[3]);
+	unsigned long count=0, stat=atol(argv[3]);
+    timeval ctime = {0}, ptime;
+    gettimeofday(&ptime, NULL);
+
+    unsigned int pts = 0;
+    size_t bytesWritten = 0;
 
 	while(!feof(ifile))
 	{
@@ -99,15 +105,29 @@ int main(int argc, char *argv[])
 			memcpy(buffer[house_id]+offset[house_id], &m, sizeof(m));
 			offset[house_id] += sizeof(m);
 			if (BUFFERLENGTH - offset[house_id] < sizeof(m)) {
-				write(con_map[house_id], buffer[house_id], offset[house_id]);
+				do {
+					bytesWritten += write(con_map[house_id], buffer[house_id] + bytesWritten, offset[house_id] - bytesWritten);
+				} while (bytesWritten != offset[house_id]);
+				bytesWritten = 0;
 				offset[house_id] = 0;
 			}
 			count++;
 		}
+		if (m.timestamp - pts > 30) {
+			for(int i=0; i<subscribers_expected; i++)
+				if (offset[i] != 0) {
+					do {
+						bytesWritten += write(con_map[i], buffer[i] + bytesWritten, offset[i] - bytesWritten);
+					} while (bytesWritten != offset[i]);
+					bytesWritten = 0;
+					offset[i] = 0;
+				}
+			pts = m.timestamp - m.timestamp % 30;
+		}
 		if(count == stat)
 		{
-			ctime = time(NULL);
-			cerr<<"Throughput = "<<count/(ctime-ptime+1)<<endl;
+			gettimeofday(&ctime, NULL);
+			cerr<<"Throughput = "<<(unsigned int)(count*1000000.0/((ctime.tv_sec - ptime.tv_sec)*1000000 + ctime.tv_usec - ptime.tv_usec))<<endl;
 			ptime = ctime;
 			count = 0;
 		}
@@ -115,8 +135,12 @@ int main(int argc, char *argv[])
 
 
 	for(int i=0; i<subscribers_expected; i++) {
-		if (offset[i] != 0)
-			write(con_map[i], buffer[i], offset[i]);
+		if (offset[i] != 0) {
+			do {
+				bytesWritten += write(con_map[i], buffer[i] + bytesWritten, offset[i] - bytesWritten);
+			} while (bytesWritten != offset[i]);
+			bytesWritten = 0;
+		}
 		delete buffer[i];
 		close(con_map[i]);
 	}

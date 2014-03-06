@@ -59,7 +59,9 @@ void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
 void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flush = false) {
 
     static unsigned int last_timestamp = boundary_ts;
+    static bool just_flushed = false;
     if (flush) {
+    	if (just_flushed) return;
         for (auto& slice:timeslice_lengths) {
             if((slice.first) == (TIMESLICE_30S)) continue;
             forcastHouseLoad(last_timestamp, house_aggregate[slice.first].accumulated_load, slice.first);
@@ -67,16 +69,20 @@ void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flu
                 house_median_container[slice.first][(last_timestamp-slice.second)%86400].insert(house_aggregate[slice.first].accumulated_load);
             house_aggregate[slice.first].accumulated_load = 0;
         }
+        just_flushed = true;
     } else {
         last_timestamp = boundary_ts;
         house_aggregate[x].accumulated_load += load;
+        just_flushed = false;
     }
 }
 
 void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsigned int household_id, bool flush = false) {
 
     static unsigned int last_timestamp = boundary_ts;
+    static bool just_flushed = false;
     if (flush || last_timestamp < boundary_ts) {
+    	if (flush && just_flushed) return;
         for (auto& household:household_aggregate) {
             for (auto& slice:timeslice_lengths) {
                 if (slice.first == TIMESLICE_30S) continue;
@@ -85,8 +91,10 @@ void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsi
                 household.second[slice.first].accumulated_load = 0;
             }
         }
-        if (flush)
+        if (flush) {
             processHouse(0,0,0,true);
+            just_flushed = true;
+        }
     }
     if (!flush) {
         last_timestamp = boundary_ts;
@@ -94,6 +102,7 @@ void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsi
         if (household_aggregate.find(household_id) == household_aggregate.end())
             household_aggregate[household_id] = initial_plug_state;
         household_aggregate[household_id][x].accumulated_load += load;
+        just_flushed = false;
     }
     //for testing
 /*  cout<<boundary_ts<< " slice " << x<<
@@ -111,8 +120,10 @@ void doProcessing(measurement *input) {
         return ;
 //      return 0; //for testing
 
-    static timeval ptime = {0};
     timeval ctime;
+    gettimeofday(&ctime, NULL);
+    static timeval ptime = ctime;
+
     unsigned int modulo = input->timestamp % timeslice_lengths.at(TIMESLICE_30S);
     static unsigned int last_timestamp = input->timestamp -((modulo == 0)? timeslice_lengths.at(TIMESLICE_30S) : modulo);
 
@@ -214,9 +225,9 @@ void doProcessing(measurement *input) {
         p_state[TIMESLICE_30S].last_timestamp = input->timestamp -
                 ((modulo == 0)? timeslice_lengths.at(TIMESLICE_30S) : modulo);
     }
-    gettimeofday(&ptime, NULL);
+    ptime = ctime;
 }
-
+/*
 // arg: house_id broker_ip port
 int main(int argc, char *argv[])
 {
@@ -265,7 +276,10 @@ int main(int argc, char *argv[])
     }
 
     // informing about the house id to the broker process
-    write(sockfd, &house_id, sizeof(house_id));
+    if (write(sockfd, &house_id, sizeof(house_id)) < 0) {
+    	printf("\n Error : Socket Write failed \n");
+    	return 1;
+    }
 
     measurement *m = new measurement;
     while((n = read(sockfd, m, sizeof(measurement))) > 0)
@@ -303,3 +317,4 @@ int main(int argc, char *argv[])
     close(sockfd);
     return 0;
 }
+*/
