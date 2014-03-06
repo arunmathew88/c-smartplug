@@ -26,81 +26,76 @@ class SContTest : public CppUnit::TestFixture
 	void test1()
 	{
 		int i =0;
-		for(int h_id=0; h_id<40; h_id++)
-			for(int hh_id=0; hh_id<10; hh_id++)
-				for(int pid=0; pid<5; pid++)
-				{
-					sct->insert(h_id, hh_id, pid, i, -1);
-					i++;
-				}
+		for(int hh_id=0; hh_id<10; hh_id++)
+			for(int pid=0; pid<5; pid++)
+			{
+				sct->insert(hh_id, pid, i, -1);
+				i++;
+			}
 
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(0, sct->getNumOfLargeNum(2000), 0.00001);
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(999, sct->getNumOfLargeNum(1000), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(0, sct->getNumOfLargeNum(50), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(24, sct->getNumOfLargeNum(25), 0.00001);
 	}
 
 	void test2()
 	{
 		int i =0;
-		for(int h_id=0; h_id<40; h_id++)
-			for(int hh_id=0; hh_id<10; hh_id++)
-				for(int pid=0; pid<5; pid++)
-				{
-					float j = i;
-					sct->insert(h_id, hh_id, pid, j, -1);
-					i++;
-				}
+		for(int hh_id=0; hh_id<10; hh_id++)
+			for(int pid=0; pid<5; pid++)
+			{
+				float j = i;
+				sct->insert(hh_id, pid, j, -1);
+				i++;
+			}
 
-		sct->insert(0, 0, 0, 0, 0);
+		sct->insert(0, 0, 0, 0);
 		float j = 1;
-		sct->insert(0, 0, 1, 1001, j);
+		sct->insert(0, 1, 1001, j);
 
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(0, sct->getNumOfLargeNum(2000), 0.00001);
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(1000, sct->getNumOfLargeNum(1000), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(1, sct->getNumOfLargeNum(50), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(25, sct->getNumOfLargeNum(25), 0.00001);
 
-		sct->insert(0, 0, 1, 1000, 1001);
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(999, sct->getNumOfLargeNum(1000), 0.00001);
+		sct->insert(0, 1, 25, 1001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(24, sct->getNumOfLargeNum(25), 0.00001);
 	}
 
 	void test3()
 	{
 		int i =0;
-		for(int h_id=0; h_id<40; h_id++)
-			for(int hh_id=0; hh_id<10; hh_id++)
-				for(int pid=0; pid<5; pid++)
-				{
-					float j = i;
-					sct->insert(h_id, hh_id, pid, j, -1);
-					i++;
-				}
+		for(int hh_id=0; hh_id<10; hh_id++)
+			for(int pid=0; pid<5; pid++)
+			{
+				float j = i;
+				sct->insert(hh_id, pid, j, -1);
+				i++;
+			}
 
-		i = 1999;
+		i = 49;
 		float j = 0;
-		for(int h_id=39; h_id>=0; h_id--)
-			for(int hh_id=9; hh_id>=0; hh_id--)
-				for(int pid=4; pid>=0; pid--)
-				{
-					sct->insert(h_id, hh_id, pid, j, i);
-					i--; j = j+1;
-				}
+		for(int hh_id=9; hh_id>=0; hh_id--)
+			for(int pid=4; pid>=0; pid--)
+			{
+				sct->insert(hh_id, pid, j, i);
+				i--; j = j+1;
+			}
 
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(0, sct->getNumOfLargeNum(2000), 0.00001);
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(999, sct->getNumOfLargeNum(1000), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(0, sct->getNumOfLargeNum(50), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(24, sct->getNumOfLargeNum(25), 0.00001);
 	}
 
 
 	void test4()
 	{
-		int i = 1999;
-		for(int h_id=0; h_id<40; h_id++)
-			for(int hh_id=0; hh_id<10; hh_id++)
-				for(int pid=0; pid<5; pid++)
-				{
-					sct->insert(h_id, hh_id, pid, i, -1);
-					i--;
-				}
+		int i = 49;
+		for(int hh_id=0; hh_id<10; hh_id++)
+			for(int pid=0; pid<5; pid++)
+			{
+				sct->insert(hh_id, pid, i, -1);
+				i--;
+			}
 
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(0, sct->getNumOfLargeNum(2000), 0.00001);
-		CPPUNIT_ASSERT_DOUBLES_EQUAL(999, sct->getNumOfLargeNum(1000), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(0, sct->getNumOfLargeNum(50), 0.00001);
+		CPPUNIT_ASSERT_DOUBLES_EQUAL(24, sct->getNumOfLargeNum(25), 0.00001);
 	}
 
 	CPPUNIT_TEST_SUITE(SContTest);
