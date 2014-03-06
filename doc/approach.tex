@@ -1,7 +1,7 @@
 %This file will contain our design approach
 %Describe the basis and then the architecture here - for example how do you calculate medians, what kind of parallelism model is employed? How often do you need to synchronize? etc.
 \subsection{Query 1}
-For query 1, we have one house process for each house in the data set and a broker process. The broker process reads the data from the input stream and passes it to the corresponding house process. Communication between the processes is done via operating system sockets. House process gets a measurement from the broker and produces a forecast for the next to next time slice. 
+For query 1, we have one house process for each house in the data set and a broker process. The broker process reads the data from the input stream and passes it to the corresponding house process. Communication between the processes is done via operating system sockets. House process gets a measurement from the broker and produces a forecast for the next to next time slice.
 For each slice size, we need to forecast the load for next to next time slice.
 \subsubsection{The Median Algorithm for query 1}
 For this query, to forecast the load of a plug in a time slice of a specific size, we need the median of the previous average loads for that time slice and for that slice size. For each day and each plug, we have only one value per day of data for that time slice and slice size. So, we store all these values in a container.
@@ -13,51 +13,6 @@ In the median container we maintain two heaps. Out of the two, one is a min-heap
 \item Case 3: Both the min-heap and the max-heap contain equal number of elements. In this case, the median is the average of the topmost value of min-heap and the topmost value of max-heap.
 
 \end{itemize}
- 
+
 \subsection{Query 2}
-The goal of query 2 is to identify outliers that consume significantly high amount of energy. The plug is counted as outlier if the median load of the plug is more than the median load of all the plugs in the system for a given sliding window (1 hr or 24 hrs). We are able to achieve a throughput of more than 800 thousand events per second using a single threaded C++ program.
- 
-\subsubsection{The Median Algorithm for query 2}
-In query 2, we need to calculate median of large amount of data. This leads to a clear trade off between computational complexity and accuracy of the median. Storage space to store the data is assumed to be enough (few GBs) to compute the median. Note that this is different from computing median for continuously streaming data because we need to compute median for a fixed size large window.
-
-We create a class which provides functionality of inserting a new element, deleting a given element and finally providing the approximate median for currently existing data in the container. We first insert all the elements into the container corresponding to the window and then delete the oldest element while sliding the window. In case of query 2, we need to compute the median everytime we receive an event. So every insert and/or deletion will be followed by a call to the \textit{getMedian} function of the class. We further optimize and reduce the asymptotic complexity to O(1). The worst case complexity of insertion and deletion is o(m), where m is number of bins.
-
-The algorithm is adaptive and bins are created "on the fly".
-
-
-In query 2, we need the median of total load of all the plugs in all the houses and the median of load of each plug for the last one hour window and for the last 24 hour window. These windows are sliding. So, to calculate the median, we need to store the values in a container. This container must support operations to insert a value, delete a value and find the median efficiently. If we want exact median then we need to store all the values in an array, in which case, finding the median will be a constant order operation. But inserting or deleting a value will take linear time. To avoid this, we can use a container which gives approximate median.
-
-
-[explain the algorithm]
-In this experiment, we have used a container which is implemented as follows:
-
-We have N bins. We store the starting value of each bin as well as the number of values in that bin (frequency of the bin). We also store the pointer to the bin containing the median, cumulative sum of the frequencies upto and including that bin and the total number of values inserted into the container. Now the three operations (insert a value, delete a value and get the median) are implemented as follows:
-
-
-
-\begin{itemize}
-  \item Get the median
-  
-  
-  
-  \item Insert a value
-  
-  When we stream in the input data, we record the first N values. If the stream is smaller than the numberof bins(N), then we can get the exact median. Else, we use insert and delete functions as follows
- 
-  \item Delete a value
-  
-  Delete a value
-  
-\end{itemize}
-
-
-
-
-
-
-
-Final complexity
-
-Maybe graphs
-
-%We have implemented an approximate median algorithm. We divide the incoming data into n bins. Each bin has a frequency 
+\input{query2}
