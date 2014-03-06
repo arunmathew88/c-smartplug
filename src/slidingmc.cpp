@@ -255,10 +255,7 @@ void SlidingMc::del(float val)
 {
 	int pos = binarySearch(val);
 	if(pos < 0)
-	{
-		cout<<"should not reach here!"<<endl;
-		exit(-1);
-	}
+		pos = 0;
 
 	if(pos == num_bins)
 		pos--;
