@@ -52,6 +52,7 @@ typedef struct Node Node;
 enum TypeEvent
 {
     INSERT = 0,
+    GLOBAL_CHANGED,
     DELETE,
     BOTH,
     EXIT,
@@ -118,6 +119,20 @@ void* solveHouse(void *threadarg)
     pthread_exit(NULL);
 }
 
+void sendEvent(int house_id, TypeEvent event, QueueNode **current_house_node, measurement m = measurement()){
+    // passing event to house threads
+    current_house_node[house_id]->mt = m;
+
+    QueueNode *n = new QueueNode();
+    current_house_node[house_id]->next = n;
+    pthread_mutex_lock(&mutex[house_id]);
+    current_house_node[house_id]->type = event;
+    pthread_mutex_unlock(&mutex[house_id]);
+
+    sem_post(&empty[house_id]);
+    current_house_node[house_id] = n;
+}
+
 // main thread gloabls
 Node* current_node;
 Node* hr_begin_node[NUM_WINDOWS];
@@ -137,29 +152,48 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
 
             unsigned ts = hr_begin_node[i]->mt.timestamp;
             if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
-            {
                 global_median[i].del(hr_begin_node[i]->mt.value);
-
-                Node* old_hr_begin_node = hr_begin_node[i];
-                hr_begin_node[i] = hr_begin_node[i]->next;
-                if(i == NUM_WINDOWS-1)
-                    delete old_hr_begin_node;
-            }
 
             if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
                 global_median[i].insert(m->value);
 
             float new_median = global_median[i].getMedian();
 
-            if(fabs(new_median - old_median) > 0.001)
+            if(ts + getWindowSize(ws) < current_node->mt.timestamp)
+                //only delete happened
+                sendEvent(hr_begin_node[i]->mt.house_id, DELETE, current_house_node, hr_begin_node[i]->mt);
+            else if(ts + getWindowSize(ws) > current_node->mt.timestamp)
+                //only insert happened
+                sendEvent(m->house_id, INSERT, current_house_node, *m);
+            else if(ts + getWindowSize(ws) == current_node->mt.timestamp)
             {
-                for(int h=0; h<NUM_HOUSE; h++)
+                //both insert and happened
+                if(m->house_id == hr_begin_node[i]->mt.house_id)
                 {
-
+                    //happened to same house
+                    sendEvent(hr_begin_node[i]->mt.house_id, BOTH, current_house_node, hr_begin_node[i]->mt);
+                    sendEvent(m->house_id, INSERT, current_house_node, *m);
+                } else
+                {
+                    //happened to different houses
+                    sendEvent(hr_begin_node[i]->mt.house_id, DELETE, current_house_node, hr_begin_node[i]->mt);
+                    sendEvent(m->house_id, INSERT, current_house_node, *m);
                 }
-            } else
-            {
+            }
 
+            if(fabs(new_median - old_median) > 0.001)
+                //global median changed
+                for(unsigned h=0; h<NUM_HOUSE; h++)
+                    //pass event to everybody except to m->house_id and  hr_begin_node[i]->mt.house_id
+                    if(h != m->house_id && h != hr_begin_node[i]->mt.house_id)
+                        sendEvent(h, GLOBAL_CHANGED, current_house_node);
+
+            if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
+            {
+                Node* old_hr_begin_node = hr_begin_node[i];
+                hr_begin_node[i] = hr_begin_node[i]->next;
+                if(i == NUM_WINDOWS-1)
+                    delete old_hr_begin_node;
             }
 
             if(ts + getWindowSize(ws) >= current_node->mt.timestamp)
@@ -168,18 +202,6 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
     }
 
     current_node = current_node->next;
-
-    // passing event to house threads
-    current_house_node[m->house_id]->mt = *m;
-
-    QueueNode *n = new QueueNode();
-    current_house_node[m->house_id]->next = n;
-    pthread_mutex_lock(&mutex[m->house_id]);
-    current_house_node[m->house_id]->type = INSERT;
-    pthread_mutex_unlock(&mutex[m->house_id]);
-
-    sem_post(&empty[m->house_id]);
-    current_house_node[m->house_id] = n;
 }
 
 // arg: broker_ip port
