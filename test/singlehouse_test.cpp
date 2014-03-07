@@ -3,11 +3,11 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/ui/text/TestRunner.h>
 
-#include "../src/singlehouse.cpp"
+#include "../src/house.cpp"
 
 measurement event(unsigned int ts, float value, unsigned char prop, unsigned int p_id, unsigned int hh_id)
 {
-	measurement m = { 0, ts, value, prop, p_id, hh_id, 0};
+	measurement m = { ts, value, prop, p_id, hh_id};
 	return m;
 }
 
@@ -274,6 +274,46 @@ class HouseProcessTest : public CppUnit::TestFixture
 		CPPUNIT_ASSERT_DOUBLES_EQUAL(m.value, house_median_container[TIMESLICE_120M][0].getMedian(), 0.00001);
 	}
 
+	//for testing correctness of forcast using median container
+	void testForcast()
+	{
+		measurement m;
+		int offsets[5] {7200, 3600, 900, 300, 60};
+		for (int i=1; i<30; i++)
+		{
+			cout <<"new event\n";
+			for (int j = 7200; j < 7202; j+=30) {
+				m = event((i-1)*86400+j-1, i, 1, 0, 0);
+				doProcessing(&m);
+				m = event((i-1)*86400+j+1, 0, 1, 0, 0);
+				doProcessing(&m);
+			}
+/*	        for (auto& slice:house_median_container)
+	        for (auto& ts:slice.second)
+       			cout <<"House MC : Slice = "<<slice.first
+       				<<" : ts = "<<ts.first
+       				<<" : Median = "<< ts.second.getMedian() <<endl;
+	        for (auto& hh:median_container)
+	        for (auto& plug:hh.second)
+	        for (auto& slice:plug.second)
+	        for (auto& ts:slice.second)
+	        	cout <<"Plug MC : HH = "<<hh.first
+	        		<<" : plig = "<<plug.first
+	        		<<" : Slice = "<<slice.first
+	        		<<" : ts = "<<ts.first
+	        		<<" : Median = "<< ts.second.getMedian() <<endl;
+*/
+			for (int j = 0; j < 1; j++) {
+				m = event(i*86400+7200-2*offsets[j], 0.5+i/2.0, 1, 0, 0);
+				doProcessing(&m);
+				m = event(i*86400+7200-2*offsets[j]+1, 0.5+i/2.0, 1, 0, 0);
+				doProcessing(&m);
+			}
+			CPPUNIT_ASSERT_DOUBLES_EQUAL(0.5+i/2.0, median_container[0][0][5][0].getMedian(), 0.00001);
+			CPPUNIT_ASSERT_DOUBLES_EQUAL(0.5+i/2.0, house_median_container[5][0].getMedian(), 0.00001);
+
+		}
+	}
 
 	CPPUNIT_TEST_SUITE( HouseProcessTest );
 	CPPUNIT_TEST( testInitial );
@@ -287,6 +327,7 @@ class HouseProcessTest : public CppUnit::TestFixture
 	CPPUNIT_TEST( test900SPrePostBoundaryEvents ); //TODO recheck
 	CPPUNIT_TEST( test3600SPrePostBoundaryEvents ); //TODO recheck
 	CPPUNIT_TEST( test7200SPrePostBoundaryEvents ); //TODO recheck
+	CPPUNIT_TEST( testForcast );
 	CPPUNIT_TEST_SUITE_END();
 };
 
