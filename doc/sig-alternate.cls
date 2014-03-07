@@ -49,6 +49,9 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{amsfonts}
+\usepackage{pgf,tikz}
+\usetikzlibrary{automata, positioning, decorations.pathreplacing}
+\usetikzlibrary{arrows,shapes,snakes,backgrounds,petri}
 % Need this for accents in Arial/Helvetica
 %\usepackage[T1]{fontenc}  % Gerry March 12, 2007 - causes Type 3 problems (body text)
 %\usepackage{textcomp}

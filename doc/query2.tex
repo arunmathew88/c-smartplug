@@ -1,7 +1,49 @@
-The goal of query 2 is to identify outliers that consume significantly high amount of energy. The plug is counted as outlier if the median load of the plug is more than the median load of all the plugs in the system for a given sliding window (1 hr or 24 hrs).
+The goal of query 2 is to identify outliers that consume significantly high amount of energy. A plug is counted as an outlier if median load of the plug is more than the median load of all the plugs in the system for a given sliding window (1 hr or 24 hrs).
 
 \subsection{Architecture}
-We are able to achieve a throughput of more than 670 thousand events per second using a single threaded C++ program in case of query 2.
+To evaluate Query 2, we have to compute global median i.e. median of all the data of all the plugs in the system acquired in a given sliding window of length 1 hr and 24 hrs. We compare the global median with the local plug medians and figure out the outliers in the system. All of this computation needs to be done every time we receive a new event. The frequent comparison of locally computed data with global data enforces a single node solution for all the houses in case of Query 2.
+
+There are 2 processes in the system residing either on the same node or on different node. First process- broker process which reads data from the file and passes all the events to other process- Q2 process. Q2 keeps a linked list of all the events of last 24 hrs in the order they have have been received. Whenever a new event is received by Q2, we slide the window such that some of the events from the end of the linked list are thrown away and new event is inserted at the head of the linked list. Further, required plug medians and global median are recomputed and change in the number of outlier plugs is written to the output file.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}[scale=0.8, >=stealth', transform shape, shorten >=1pt, node distance=4cm,auto]
+\tikzstyle{every state}=[draw=blue!50, very thick, fill=blue!20,minimum size=2cm]
+\node[state] (broker) [text width=1.5cm, align=center] {Broker Process};
+\node[state] (Q2) [right of=broker] {Q2 Process};
+
+\path[->] (broker) edge node {events} (Q2);
+\end{tikzpicture}
+\caption{Query 2 System Architecture}
+\end{center}
+\end{figure}
+
+We use the Sliding Median Container (SlidingMc) in order to compute various medians and S Container (SCont) for the purpose of finding the number of outliers in every house. Let's assume an event \textit{E} is received by the Q2 process from the broker process with timestamp \textit{$T_E$}. Let's also assume the window size to be \textit{W} seconds which can be either 1 hr or 24 hrs. \textit{$T_W$} is the minimum timestamp which exists in the window of length \textit{W} terminating with the event E as shown in the following figure.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}[scale=0.8, transform shape, shorten >=1pt, node distance=0.8cm,auto]
+\tikzstyle{every state}=[draw=blue!50, rectangle, very thick, fill=blue!20]
+\node[state] (I1) {$T_0$};
+\node[state] (I2) [right of=I1] {};
+\node[state] (I3) [right of=I2] {};
+\node[state] (I4) [right of=I3] {$$};
+\node[state] (I5) [right of=I4] {$T_W$};
+\node[state] (I6) [right of=I5] {$$};
+\node[state] (I7) [right of=I6] {$$};
+\node[state] (I8) [right of=I7] {$$};
+\node[state] (I9) [right of=I8] {$T_E$};
+
+\draw [decorate,decoration={brace,amplitude=10pt,mirror,raise=10pt},yshift=0pt] (I5.center) -- (I9.center);
+\node (text) at (5,-1) {Window W};
+\end{tikzpicture}
+\caption{Linked List in Q2 process}
+\end{center}
+\end{figure}
+
+Note that there may be multiple events with timestamp $T_W$ in the window. In such a case, we choose the left most event in the linked lsit. Also, if the data corresponding to the timestamp $\tau = (T_E - W +1)$ is missing, then $T_W$ will be the first timestamp bigger than $\tau$ for which event for any plug in the system is present. Now, the algorithm proceeds as follows. We shift the end of the window one event keeping the front fixed. We delete the oldest event from the median container of the corresponding plug and the global median container. Now, we compute new median of the plug and insert the new median into the S container of the house. If the global median has changed after the shift, we recompute the percentage number of outliers for every house. We output an event if any of the percentage has changed. On the other hand, if the global median doesn't change, we only check the percentage number of outliers for the house corresponding to deleted event.
+
+We stop when the first event in the window has the timestamp $T_W$. In the last slide, before computing any medians, we also insert the newly received event $E$ into the global median container and the median container of the plug of the event E. Rest of the computation remains same.
 
 \subsection{Median Algorithm}
 In query 2, we have to calculate median of large amounts of data frequently. This leads to a clear trade off between computational complexity and accuracy of the median. We define a container which provides basic functionality of inserting a new element, deleting a given element and finally providing the approximate median for currently existing data in the container. We first insert all the elements into the container corresponding to the sliding window. Every time we slide by 1 sec, we perform at most 2 operations. We delete the oldest event if it exists and insert the latest event in the window. Every insert and/or delete operation is followed by computation of median. We, therefore, want to minimize the complexity of median calculation. We, now, propose an algorithm to compute median which takes constant time for every operation in the given scenario with very low relative error.
@@ -71,4 +113,4 @@ We keep a linked list to store all the events occurred in a given window (1 hr a
 
 As soon as we receive a new event, we start removing events from the end of the linked list one by one. Every time we delete an event, we compute the median of the plug corresponding to the deleted event. We also compute the global median (median of all the data of all the plugs in the system). Any change in global median requires computation for all houses i.e. we compute whether the number of plugs in a house having median greater than the global median has changed, for every house. Any change in the percentage leads to an output event. If global median is same, we simply look at the house of the plug corresponding to the deleted event only. We compute the number of plugs having median bigger than the global median for the house. Change in the percentage here, leads to another output event. The output event is associated to the window beginning at 1 higher timestamp than the deleted event (ts+1) to (ts+legnth(window)).
 
-
+\subsection{Experimental Evaluation}
