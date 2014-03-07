@@ -16,7 +16,7 @@
 #include <cstdio>
 using namespace std;
 
-#define SYNC_PORT 5556
+#define SYNC_PORT 5557
 
 // arg: #houses datafile freq
 int main(int argc, char *argv[])
