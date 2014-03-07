@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -10,12 +11,10 @@
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
+#include <math.h>
 #include "common.h"
 #include "mc.h"
 
-#define LAMBDA 1
-#define HH_ID 0
-#define PLUG_ID 0
 //global
 house_state state;
 std::unordered_map<unsigned int, plug_state> household_aggregate;
@@ -29,171 +28,238 @@ std::unordered_map<unsigned int,
     >
 > median_container;
 
-/*std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> w;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> w_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> w_prev_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> median_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> median_prev_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> avg_value_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> avg_value_prev_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> forecast_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> forecast_prev_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int,
-        std::unordered_map<unsigned int,
-            std::unordered_map<unsigned int, float>
-        >
-    >
-> error;*/
-
 std::unordered_map<unsigned int,
     std::unordered_map<unsigned int, Mc>
 >house_median_container;
 
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_w;
+//ML data containers
+std::unordered_map<unsigned int,					//lambda
+	std::unordered_map<unsigned int,				//slice
+		std::unordered_map<unsigned int, 			//[0-2] historic index [no need for timeofday index]
+			float
+		>
+	>
+> house_weights, house_hist_medians, house_avg_values, house_forecasts, house_ts;
 
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_w_prev;
 
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_w_prev_prev;
+std::unordered_map<unsigned int,					//lambda
+	std::unordered_map<unsigned int,
+        float
+	>
+> house_error;		                                //this is the error to see what value of lambda is the best
 
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_avg_value_prev;
+std::unordered_map<unsigned int,                    //lambda
+    std::unordered_map<unsigned int,
+        std::unordered_map<unsigned int,
+            std::unordered_map<unsigned int,                //slice
+                std::unordered_map<unsigned int,            //[0-2] historic index [no need for timeofday index]
+                    float
+                >
+            >
+        >
+    >
+> plug_weights, plug_hist_medians, plug_avg_values, plug_forecasts, plug_ts;
 
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_avg_value_prev_prev;
 
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_median_prev;
+std::unordered_map<unsigned int,                    //lambda
+    std::unordered_map<unsigned int,                //slice
+        std::unordered_map<unsigned int,
+            std::unordered_map<unsigned int,
+                float
+            >
+        >
+    >
+> plug_error;                                      //this is the error to see what value of lambda is the best
 
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_median_prev_prev;
 
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_forecast_prev_prev;
-
-std::unordered_map<unsigned int,
-    std::unordered_map<unsigned int, float>
->house_forecast_prev;
-
-float house_error;
+float lambda[] = {0.1, 0.2, 0.3};  //how many ever values you need.
+size_t no_of_lambdas = sizeof(lambda)/sizeof(lambda[0]);
 
 unsigned int house_id;
+
+float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_value, unsigned int slice, unsigned int lambdaindex = 0) {
+	float weight;
+	if (house_weights[lambdaindex].find(slice) == house_weights[lambdaindex].end()) {
+		house_weights[lambdaindex][slice][0] = 0.5;
+		house_weights[lambdaindex][slice][1] = 0.5;
+		house_weights[lambdaindex][slice][2] = 0.5;
+	}
+	weight = house_weights[lambdaindex][slice][0];
+	float median;
+    median = house_median_container[slice][forcast_ts % 86400].getMedian();
+    float forecast = weight*median + (1 - weight)*avg_value;
+
+    if (house_ts[lambdaindex].find(slice) == house_ts[lambdaindex].end())
+    {
+        house_ts[lambdaindex][slice][0] = 0;
+        house_ts[lambdaindex][slice][1] = 0;
+    }
+
+    bool valid_history = ((ts - house_ts[lambdaindex][slice][1]) == 2*timeslice_lengths.at(slice));
+
+    if (ts%timeslice_lengths.at(slice) != 0)
+        return forecast;
+
+	if (house_hist_medians[lambdaindex].find(slice) == house_hist_medians[lambdaindex].end()) {
+		house_hist_medians[lambdaindex][slice][0] = 0;
+		house_hist_medians[lambdaindex][slice][1] = 0;
+	}
+
+	if (house_forecasts[lambdaindex].find(slice) == house_forecasts[lambdaindex].end()) {
+		house_forecasts[lambdaindex][slice][0] = 0;
+		house_forecasts[lambdaindex][slice][1] = 0;
+	}
+
+	if (house_avg_values[lambdaindex].find(slice) == house_avg_values[lambdaindex].end()) {
+		house_avg_values[lambdaindex][slice][0] = 0;
+		house_avg_values[lambdaindex][slice][1] = 0;
+	}
+
+    if (house_error[lambdaindex].find(slice) == house_error[lambdaindex].end()) {
+        house_error[lambdaindex][slice] = 0;
+    }
+
+    if (valid_history)
+    {
+        float error = (avg_value - house_forecasts[lambdaindex][slice][1]);
+        house_error[lambdaindex][slice] += error * error;
+    }
+
+    float wnew = house_weights[lambdaindex][slice][0];
+
+    if(valid_history)
+    {
+        wnew = (	(house_weights[lambdaindex][slice][2] * lambda[lambdaindex])
+					- (	(avg_value - house_avg_values[lambdaindex][slice][1])
+						*(	house_hist_medians[lambdaindex][slice][1]
+							- house_avg_values[lambdaindex][slice][1]
+						)
+					)
+				)
+		/
+			(lambda[lambdaindex]
+					+
+                    pow( (	house_hist_medians[lambdaindex][slice][1]
+					   	- house_avg_values[lambdaindex][slice][1]
+					), 2.0));
+    }
+
+
+	house_weights[lambdaindex][slice][2] = house_weights[lambdaindex][slice][1];
+	house_weights[lambdaindex][slice][1] = house_weights[lambdaindex][slice][0];
+	house_weights[lambdaindex][slice][0] = wnew;
+
+	house_avg_values[lambdaindex][slice][1] = house_avg_values[lambdaindex][slice][0];
+	house_avg_values[lambdaindex][slice][0] = avg_value;
+
+	house_hist_medians[lambdaindex][slice][1] = house_hist_medians[lambdaindex][slice][0];
+	house_hist_medians[lambdaindex][slice][0] = median;
+
+
+    house_ts[lambdaindex][slice][1] = house_ts[lambdaindex][slice][0];
+    house_ts[lambdaindex][slice][0] = ts;
+
+	return forecast;
+}
+
+float forecastPlugLoad(unsigned int ts, unsigned int forcast_ts, unsigned int hh_id, unsigned int plug_id, float avg_value, unsigned int slice, unsigned int lambdaindex = 0)
+{
+    float weight;
+    if (plug_weights[lambdaindex][hh_id][plug_id].find(slice) == plug_weights[lambdaindex][hh_id][plug_id].end()) {
+        plug_weights[lambdaindex][hh_id][plug_id][slice][0] = 0.5;
+        plug_weights[lambdaindex][hh_id][plug_id][slice][1] = 0.5;
+        plug_weights[lambdaindex][hh_id][plug_id][slice][2] = 0.5;
+    }
+    weight = plug_weights[lambdaindex][hh_id][plug_id][slice][0];
+
+    float median;
+    median = median_container[slice][hh_id][plug_id][forcast_ts % 86400].getMedian();
+    float forecast = weight*median + (1 - weight)*avg_value;
+
+    if (plug_ts[lambdaindex][hh_id][plug_id].find(slice) == plug_ts[lambdaindex][hh_id][plug_id].end())
+    {
+        plug_ts[lambdaindex][hh_id][plug_id][slice][0] = 0;
+        plug_ts[lambdaindex][hh_id][plug_id][slice][1] = 0;
+    }
+
+    bool valid_history = ((ts - plug_ts[lambdaindex][hh_id][plug_id][slice][1]) == 2*timeslice_lengths.at(slice));
+
+    if (ts%timeslice_lengths.at(slice) != 0)
+        return forecast;
+
+    if (plug_hist_medians[lambdaindex][hh_id][plug_id].find(slice) == plug_hist_medians[lambdaindex][hh_id][plug_id].end()) {
+        plug_hist_medians[lambdaindex][hh_id][plug_id][slice][0] = 0;
+        plug_hist_medians[lambdaindex][hh_id][plug_id][slice][1] = 0;
+    }
+
+    if (plug_forecasts[lambdaindex][hh_id][plug_id].find(slice) == plug_forecasts[lambdaindex][hh_id][plug_id].end()) {
+        plug_forecasts[lambdaindex][hh_id][plug_id][slice][0] = 0;
+        plug_forecasts[lambdaindex][hh_id][plug_id][slice][1] = 0;
+    }
+
+    if (plug_avg_values[lambdaindex][hh_id][plug_id].find(slice) == plug_avg_values[lambdaindex][hh_id][plug_id].end()) {
+        plug_avg_values[lambdaindex][hh_id][plug_id][slice][0] = 0;
+        plug_avg_values[lambdaindex][hh_id][plug_id][slice][1] = 0;
+    }
+
+    if (plug_error[lambdaindex][hh_id][plug_id].find(slice) == plug_error[lambdaindex][hh_id][plug_id].end()) {
+        plug_error[lambdaindex][hh_id][plug_id][slice] = 0;
+    }
+
+    if (valid_history)
+    {
+        float error = (avg_value - plug_forecasts[lambdaindex][hh_id][plug_id][slice][1]);
+        plug_error[lambdaindex][hh_id][plug_id][slice] = error * error;
+    }
+
+    plug_forecasts[lambdaindex][hh_id][plug_id][slice][1] = plug_forecasts[lambdaindex][hh_id][plug_id][slice][0];
+    plug_forecasts[lambdaindex][hh_id][plug_id][slice][0] = forecast;
+
+    float wnew = plug_weights[lambdaindex][hh_id][plug_id][slice][0];
+    if (valid_history)
+    {
+        wnew = (  (plug_weights[lambdaindex][hh_id][plug_id][slice][2] * lambda[lambdaindex])
+                    - ( (avg_value - plug_avg_values[lambdaindex][hh_id][plug_id][slice][1])
+                        *(  plug_hist_medians[lambdaindex][hh_id][plug_id][slice][1]
+                            - plug_avg_values[lambdaindex][hh_id][plug_id][slice][1]
+                        )
+                    )
+                )
+        /
+            (lambda[lambdaindex]
+                    +
+                    pow( (  plug_hist_medians[lambdaindex][hh_id][plug_id][slice][1]
+                        - plug_avg_values[lambdaindex][hh_id][plug_id][slice][1]
+                    ), 2.0));
+    }
+
+    plug_weights[lambdaindex][hh_id][plug_id][slice][2] = plug_weights[lambdaindex][hh_id][plug_id][slice][1];
+    plug_weights[lambdaindex][hh_id][plug_id][slice][1] = plug_weights[lambdaindex][hh_id][plug_id][slice][0];
+    plug_weights[lambdaindex][hh_id][plug_id][slice][0] = wnew;
+
+    plug_avg_values[lambdaindex][hh_id][plug_id][slice][1] = plug_avg_values[lambdaindex][hh_id][plug_id][slice][0];
+    plug_avg_values[lambdaindex][hh_id][plug_id][slice][0] = avg_value;
+
+    plug_hist_medians[lambdaindex][hh_id][plug_id][slice][1] = plug_hist_medians[lambdaindex][hh_id][plug_id][slice][0];
+    plug_hist_medians[lambdaindex][hh_id][plug_id][slice][0] = median;
+
+
+    plug_ts[lambdaindex][hh_id][plug_id][slice][1] = plug_ts[lambdaindex][hh_id][plug_id][slice][0];
+    plug_ts[lambdaindex][hh_id][plug_id][slice][0] = ts;
+
+    return forecast;
+}
 
 void forcastPlugLoad(unsigned int ts, unsigned int hh_id, unsigned int plug_id, float average_load, unsigned int slice) {
     unsigned int forcast_ts = ts - ts % timeslice_lengths.at(slice) +
             ((ts % timeslice_lengths.at(slice))?2:1) * timeslice_lengths.at(slice);
     float median = median_container[hh_id][plug_id][slice][forcast_ts % 86400].getMedian(), forcast;
-    //float weight = w[hh_id][plug_id][slice][forcast_ts % 86400];
     if (median < 0)
         forcast = average_load;
     else
         forcast = (average_load + median)/2;
-
-    /*
-    if(hh_id == HH_ID){
-        if(plug_id == PLUG_ID){
-            error += (forecast_prev_prev[slice][forcast_ts % 86400] - average_load)*(forecast_prev_prev[slice][forcast_ts % 86400] - average_load);
-
-            forecast_prev_prev[slice][forcast_ts % 86400] = forecast_prev[plug_id][slice][forcast_ts % 86400];
-            forecast_prev[slice][forcast_ts % 86400] = forcast;
-
-            prev_w = w_prev_prev[slice][forcast_ts % 86400];
-            prev_median = median_prev_prev[slice][forcast_ts % 86400];
-            prev_avg = avg_value_prev_prev[slice][forcast_ts % 86400];
-            float wnew = ((prev_w*LAMBDA) - ((average_load - prev_avg)*(prev_median - prev_avg)))/(LAMBDA*(prev_median - prev_avg));
-
-            w_prev_prev[slice][forcast_ts % 86400] = w_prev[slice][forcast_ts % 86400];
-            w_prev[slice][forcast_ts % 86400] = w[slice][forcast_ts % 86400];
-
-            if(wnew < 0)
-                wnew = 0;
-            else if(wnew > 1)
-                wnew = 1;
-
-            w[slice][forcast_ts % 86400] = wnew;
-
-            median_prev_prev[slice][forcast_ts % 86400] = median_prev[slice][forcast_ts % 86400];
-            median_prev[slice][forcast_ts % 86400] = median;
-
-            avg_value_prev_prev[slice][forcast_ts % 86400] = avg_value_prev[slice][forcast_ts % 86400];
-            avg_value_prev[slice][forcast_ts % 86400] = average_load;
-
-        }
-    }*/
+    for(unsigned int i = 0; i < no_of_lambdas; i++)
+        forcast = forecastPlugLoad(ts, forcast_ts, hh_id, plug_id, average_load, slice, i);
     printf("PLUG_FORECAST_%u_S %u %u,%u,%u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, hh_id, plug_id, forcast);
 }
 
@@ -201,94 +267,21 @@ void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
     unsigned int forcast_ts = ts - ts % timeslice_lengths.at(slice) +
             ((ts % timeslice_lengths.at(slice))?2:1) * timeslice_lengths.at(slice);
     float median = house_median_container[slice][forcast_ts % 86400].getMedian(), forcast;
-
-    /*if(house_w.find(slice) == house_w.end())
-        house_w[slice] = {};
-    if(house_w[slice].find(forcast_ts % 86400) == house_w[slice].end())
-        house_w[slice][forcast_ts % 86400] = 0.5;
-
-    float weight = house_w[slice][forcast_ts % 86400];*/
     if (median < 0)
         forcast = average_load;
     else
         forcast = (average_load + median)/2;
-
-
-    if(house_forecast_prev_prev.find(slice) == house_forecast_prev_prev.end())
-        house_forecast_prev_prev[slice] = {};
-    if(house_forecast_prev_prev[slice].find(forcast_ts % 86400) == house_forecast_prev_prev[slice].end())
-        house_forecast_prev_prev[slice][forcast_ts % 86400] = 0;
-
-    house_error += (average_load - house_forecast_prev_prev[slice][forcast_ts % 86400])*(average_load - house_forecast_prev_prev[slice][forcast_ts % 86400]);
-
-    if(house_forecast_prev.find(slice) == house_forecast_prev.end())
-        house_forecast_prev[slice] = {};
-    if(house_forecast_prev[slice].find(forcast_ts % 86400) == house_forecast_prev[slice].end())
-        house_forecast_prev[slice][forcast_ts % 86400] = 0;
-
-    house_forecast_prev_prev[slice][forcast_ts % 86400] = house_forecast_prev[slice][forcast_ts % 86400];
-    house_forecast_prev[slice][forcast_ts % 86400] = forcast;
-
-    /*
-    if(house_w_prev_prev.find(slice) == house_w_prev_prev.end())
-        house_w_prev_prev[slice] = {};
-    if(house_w_prev_prev[slice].find(forcast_ts % 86400) == house_w_prev_prev[slice].end())
-        house_w_prev_prev[slice][forcast_ts % 86400] = 0.5;
-
-    if(house_median_prev_prev.find(slice) == house_median_prev_prev.end())
-        house_median_prev_prev[slice] = {};
-    if(house_median_prev_prev[slice].find(forcast_ts % 86400) == house_median_prev_prev[slice].end())
-        house_median_prev_prev[slice][forcast_ts % 86400] = 0;
-
-    if(house_avg_value_prev_prev.find(slice) == house_avg_value_prev_prev.end())
-        house_avg_value_prev_prev[slice] = {};
-    if(house_avg_value_prev_prev[slice].find(forcast_ts % 86400) == house_avg_value_prev_prev[slice].end())
-        house_avg_value_prev_prev[slice][forcast_ts % 86400] = 0;
-
-    float prev_w = house_w_prev_prev[slice][forcast_ts % 86400];
-    float prev_median = house_median_prev_prev[slice][forcast_ts % 86400];
-    float prev_avg = house_avg_value_prev_prev[slice][forcast_ts % 86400];
-    float wnew = ((prev_w*LAMBDA) - ((average_load - prev_avg)*(prev_median - prev_avg)))/(LAMBDA + (prev_median - prev_avg)*(prev_median - prev_avg));
-
-    if(house_w_prev.find(slice) == house_w_prev.end())
-        house_w_prev[slice] = {};
-    if(house_w_prev[slice].find(forcast_ts % 86400) == house_w_prev[slice].end())
-        house_w_prev[slice][forcast_ts % 86400] = 0.5;
-
-    if(house_w.find(slice) == house_w.end())
-        house_w[slice] = {};
-    if(house_w[slice].find(forcast_ts % 86400) == house_w[slice].end())
-        house_w[slice][forcast_ts % 86400] = 0.5;
-
-    house_w_prev_prev[slice][forcast_ts % 86400] = house_w_prev[slice][forcast_ts % 86400];
-    house_w_prev[slice][forcast_ts % 86400] = house_w[slice][forcast_ts % 86400];
-
-    if(wnew < 0)
-        wnew = 0;
-    else if(wnew > 1)
-        wnew = 1;
-
-    house_w[slice][forcast_ts % 86400] = wnew;
-
-    if(house_avg_value_prev.find(slice) == house_avg_value_prev.end())
-        house_avg_value_prev_prev[slice] = {};
-    if(house_avg_value_prev[slice].find(forcast_ts % 86400) == house_avg_value_prev[slice].end())
-        house_avg_value_prev[slice][forcast_ts % 86400] = 0;
-
-    house_median_prev_prev[slice][forcast_ts % 86400] = house_median_prev[slice][forcast_ts % 86400];
-    house_median_prev[slice][forcast_ts % 86400] = median;
-
-    house_avg_value_prev_prev[slice][forcast_ts % 86400] = house_avg_value_prev[slice][forcast_ts % 86400];
-    house_avg_value_prev[slice][forcast_ts % 86400] = average_load;
-    */
-
+    for(unsigned int i = 0; i < no_of_lambdas; i++)
+        forcast = forecastHouseLoad(ts, forcast_ts, average_load, slice, i);
     printf("HOUSE_FORECAST_%u_S %u %u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, forcast);
 }
 
 void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flush = false) {
 
     static unsigned int last_timestamp = boundary_ts;
+    static bool just_flushed = false;
     if (flush) {
+    	if (just_flushed) return;
         for (auto& slice:timeslice_lengths) {
             if((slice.first) == (TIMESLICE_30S)) continue;
             forcastHouseLoad(last_timestamp, house_aggregate[slice.first].accumulated_load, slice.first);
@@ -296,16 +289,20 @@ void processHouse(unsigned int boundary_ts, unsigned int x, float load, bool flu
                 house_median_container[slice.first][(last_timestamp-slice.second)%86400].insert(house_aggregate[slice.first].accumulated_load);
             house_aggregate[slice.first].accumulated_load = 0;
         }
+        just_flushed = true;
     } else {
         last_timestamp = boundary_ts;
         house_aggregate[x].accumulated_load += load;
+        just_flushed = false;
     }
 }
 
 void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsigned int household_id, bool flush = false) {
 
     static unsigned int last_timestamp = boundary_ts;
+    static bool just_flushed = false;
     if (flush || last_timestamp < boundary_ts) {
+    	if (flush && just_flushed) return;
         for (auto& household:household_aggregate) {
             for (auto& slice:timeslice_lengths) {
                 if (slice.first == TIMESLICE_30S) continue;
@@ -314,8 +311,10 @@ void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsi
                 household.second[slice.first].accumulated_load = 0;
             }
         }
-        if (flush)
+        if (flush) {
             processHouse(0,0,0,true);
+            just_flushed = true;
+        }
     }
     if (!flush) {
         last_timestamp = boundary_ts;
@@ -323,6 +322,7 @@ void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsi
         if (household_aggregate.find(household_id) == household_aggregate.end())
             household_aggregate[household_id] = initial_plug_state;
         household_aggregate[household_id][x].accumulated_load += load;
+        just_flushed = false;
     }
     //for testing
 /*  cout<<boundary_ts<< " slice " << x<<
@@ -335,12 +335,15 @@ void processHouseHold(unsigned int boundary_ts, unsigned int x, float load, unsi
 //for each measurement read do
 //float doProcessing(measurement *input) {  //for testing
 void doProcessing(measurement *input) {
+
     if (input->property == '0') //ignore if the measurement is a work value
         return ;
 //      return 0; //for testing
 
-    static timeval ptime = {0};
     timeval ctime;
+    gettimeofday(&ctime, NULL);
+    static timeval ptime = ctime;
+
     unsigned int modulo = input->timestamp % timeslice_lengths.at(TIMESLICE_30S);
     static unsigned int last_timestamp = input->timestamp -((modulo == 0)? timeslice_lengths.at(TIMESLICE_30S) : modulo);
 
@@ -442,14 +445,12 @@ void doProcessing(measurement *input) {
         p_state[TIMESLICE_30S].last_timestamp = input->timestamp -
                 ((modulo == 0)? timeslice_lengths.at(TIMESLICE_30S) : modulo);
     }
-    gettimeofday(&ptime, NULL);
+    ptime = ctime;
 }
 
 // arg: house_id broker_ip port
 int main(int argc, char *argv[])
 {
-    house_error = 0;
-
     string house_id_str, broker_ip;
     int port;
 
@@ -495,18 +496,16 @@ int main(int argc, char *argv[])
     }
 
     // informing about the house id to the broker process
-    write(sockfd, &house_id, sizeof(house_id));
+    if (write(sockfd, &house_id, sizeof(house_id)) < 0) {
+    	printf("\n Error : Socket Write failed \n");
+    	return 1;
+    }
 
     measurement *m = new measurement;
-    int count = 0;
     while((n = read(sockfd, m, sizeof(measurement))) > 0)
     {
-        count++;
         if(n == sizeof(measurement))
         {
-            if(count%100 == 0){
-                std::cerr << "ERROR = "  << house_error << endl;
-            }
             doProcessing(m);
         } else if(n < sizeof(measurement))
         {
@@ -533,8 +532,9 @@ int main(int argc, char *argv[])
             exit(-1);
         }
     }
-    std::cerr << "ERROR = "  << house_error << endl;
+
     delete m;
     close(sockfd);
     return 0;
 }
+
