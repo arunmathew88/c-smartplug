@@ -65,9 +65,11 @@ struct QueueNode
     QueueNode* next;
     float global_median;
     TypeEvent type;
+    Window ws;
+    long int times;
 
-    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, TypeEvent t=NONE)
-    : mt(m), next(n), global_median(gm), type(t) {}
+    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, TypeEvent t=NONE, Window w=0, long int t=-1)
+    : mt(m), next(n), global_median(gm), type(t), ws(w), times(t) {}
 };
 typedef struct QueueNode QueueNode;
 
@@ -88,6 +90,14 @@ void* solveHouse(void *threadarg)
 {
     struct ThreadData *my_data = (struct ThreadData*) threadarg;
 
+    unordered_map<unsigned,
+        unordered_map<unsigned,
+            SlidingMc> >
+    mc[NUM_WINDOWS];
+    SlidingMc global_median[NUM_WINDOWS];
+    int num_percentage_more[NUM_WINDOWS] = {0};
+    SCont msc[NUM_WINDOWS];
+
     QueueNode* ch_node = my_data->queue;
     int house_id = my_data->house_id;
 
@@ -98,30 +108,90 @@ void* solveHouse(void *threadarg)
         te = ch_node->type;
         pthread_mutex_unlock(&mutex[house_id]);
 
-        if(te == EXIT)
+        if(te == GLOBAL_CHANGED)
         {
-            delete ch_node;
-            break;
-        } else if(te != NONE)
-        {
+            int old_percentage = num_percentage_more[i];
+            num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
+
+            if(old_percentage != num_percentage_more[i][m->house_id])
+            {
+                cout << (ch_node->times+1-getWindowSize(ws)) << "," << ch_node->times << "," << house_id << ","
+                             << num_percentage_more[i]/(msc[i].getSize()/100.0) <<endl;
+            }
             QueueNode *node = ch_node;
             ch_node = ch_node->next;
             delete node;
-        } else
+        } else if(te == DELETE)
+        {
+            unsigned household_id =  ch_node->mt.household_id;
+            unsigned plug_id =  ch_node->mt.plug_id;
+
+            mc[i][household_id][plug_id].del(ch_node->mt.value);
+
+            int old_percentage = num_percentage_more[i];
+            num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
+
+            if(old_percentage != num_percentage_more[i][m->house_id])
+            {
+                cout << (ch_node->times+1-getWindowSize(ws)) << "," << ch_node->times << "," << house_id << ","
+                             << num_percentage_more[i]/(msc[i].getSize()/100.0) <<endl;
+            }
+
+            QueueNode *node = ch_node;
+            ch_node = ch_node->next;
+            delete node;
+        } else if(te == BOTH)
+        {
+            unsigned household_id =  ch_node->mt.household_id;
+            unsigned plug_id =  ch_node->mt.plug_id;
+
+            mc[i][household_id][plug_id].del(ch_node->mt.value);
+
+            QueueNode *node = ch_node;
+            ch_node = ch_node->next;
+            delete node;
+        } else if(te == INSERT)
+        {
+            unsigned household_id =  ch_node->mt.household_id;
+            unsigned plug_id =  ch_node->mt.plug_id;
+
+            mc[i][household_id][plug_id].insert(ch_node->mt.value);
+
+             int old_percentage = num_percentage_more[i];
+            num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
+
+            if(old_percentage != num_percentage_more[i][m->house_id])
+            {
+                cout << (ch_node->times+1-getWindowSize(ws)) << "," << ch_node->times << "," << house_id << ","
+                             << num_percentage_more[i]/(msc[i].getSize()/100.0) <<endl;
+            }
+
+            QueueNode *node = ch_node;
+            ch_node = ch_node->next;
+            delete node;
+        } else if(te == NONE)
         {
             struct timespec ts;
             ts.tv_sec += 2;
             clock_gettime(CLOCK_REALTIME, &ts);
             sem_timedwait(&empty[house_id], &ts);
+        } else if(te == EXIT)
+        {
+            delete ch_node;
+            break;
         }
     }
 
     pthread_exit(NULL);
 }
 
-void sendEvent(int house_id, TypeEvent event, QueueNode **current_house_node, measurement m = measurement()){
+void sendEvent(int house_id, TypeEvent event, QueueNode **current_house_node, measurement m = measurement(),
+                Window ws, long int tstamp, float global_median){
     // passing event to house threads
     current_house_node[house_id]->mt = m;
+    current_house_node[house_id]->ws = ws;
+    current_house_node[house_id]->times = tstamp;
+    current_house_node[house_id]->global_median = global_median;
 
     QueueNode *n = new QueueNode();
     current_house_node[house_id]->next = n;
@@ -161,32 +231,40 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
 
             if(ts + getWindowSize(ws) < current_node->mt.timestamp)
                 //only delete happened
-                sendEvent(hr_begin_node[i]->mt.house_id, DELETE, current_house_node, hr_begin_node[i]->mt);
+                sendEvent(hr_begin_node[i]->mt.house_id, DELETE, current_house_node, hr_begin_node[i]->mt, ws, (long int)ts, new_median);
             else if(ts + getWindowSize(ws) > current_node->mt.timestamp)
                 //only insert happened
-                sendEvent(m->house_id, INSERT, current_house_node, *m);
+                sendEvent(m->house_id, INSERT, current_house_node, *m, ws, (long int)current_node->mt.timestamp, new_median);
             else if(ts + getWindowSize(ws) == current_node->mt.timestamp)
             {
                 //both insert and happened
                 if(m->house_id == hr_begin_node[i]->mt.house_id)
                 {
                     //happened to same house
-                    sendEvent(hr_begin_node[i]->mt.house_id, BOTH, current_house_node, hr_begin_node[i]->mt);
-                    sendEvent(m->house_id, INSERT, current_house_node, *m);
+                    sendEvent(hr_begin_node[i]->mt.house_id, BOTH, current_house_node, hr_begin_node[i]->mt, ws, (long int)ts, new_median);
+                    sendEvent(m->house_id, INSERT, current_house_node, *m, ws, (long int)current_node->mt.timestamp, new_median);
                 } else
                 {
                     //happened to different houses
-                    sendEvent(hr_begin_node[i]->mt.house_id, DELETE, current_house_node, hr_begin_node[i]->mt);
-                    sendEvent(m->house_id, INSERT, current_house_node, *m);
+                    sendEvent(hr_begin_node[i]->mt.house_id, DELETE, current_house_node, hr_begin_node[i]->mt, ws, (long int)ts, new_median);
+                    sendEvent(m->house_id, INSERT, current_house_node, *m, ws, (long int)current_node->mt.timestamp, new_median);
                 }
             }
 
             if(fabs(new_median - old_median) > 0.001)
+            {
+                long int pass_ts = 0;
+                if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
+                    pass_ts = (long int)ts;
+                else
+                    pass_ts = (long int)current_node->mt.timestamp;
+
                 //global median changed
                 for(unsigned h=0; h<NUM_HOUSE; h++)
                     //pass event to everybody except to m->house_id and  hr_begin_node[i]->mt.house_id
                     if(h != m->house_id && h != hr_begin_node[i]->mt.house_id)
-                        sendEvent(h, GLOBAL_CHANGED, current_house_node);
+                        sendEvent(h, GLOBAL_CHANGED, current_house_node, , ws, pass_ts, new_median);
+            }
 
             if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
             {
