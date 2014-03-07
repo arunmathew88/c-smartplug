@@ -1,0 +1,21 @@
+%This file will contain our design approach
+%Describe the basis and then the architecture here - for example how do you calculate medians, what kind of parallelism model is employed? How often do you need to synchronize? etc.
+\subsection{Query 1}
+In the context of query 1, time is divided into multiple slots of different time slice sizes. The time slice sizes considered are 1m, 5m, 15m, 60m \& 120m. Hence for a day we have twelve 120m slices and 86400 one minute slices. When processing the events falling withing a time slice, Query 1 should output predicted load of each plug and the house for the next to next time slice. Query 1 should output the load prediction based on the average load of current time slice and the median of the historical load averages of the future time slice for which we are making prediction. We need to produce forecast every 30s.
+
+We have one house process for each house in the data set and a broker process. The broker process reads the data from the input stream (sorted events file in current implementation) and passes it to the corresponding house process. Communication between the processes is done via operating system sockets.
+
+In the house process, we have load value accumulators for different time slices (1m, 5m, 15m, 60m and 120m). We also have another accumulator for 30s. When house process gets an event if the event falls within the current 30s time slice, the load \footnote{For now we are ignoring events with work values} value is added to the 30s accumulator and the count of values is incremented. If the event crosses the 30s timeslice, then the accumulated load values and count is added to accumulators of all the other time slices (1m, 5m $\cdot$ etc) and a forecast output is triggered, before setting the 30s accumulator to current load value and count to 1. The triggered forecasting will output the predictions for all the time slices with the average of current accumulated load values and the historical median of the corresponding future time slice. The accumulators for each time slice gets reset, if we get an event crossing the time slice boundary, after making the forecast using the accumulater load value.
+
+
+\subsubsection{The Median Algorithm for query 1}
+For this query, to forecast the load of a plug in a time slice of a specific size, we need the median of the previous average loads for that time slice and for that slice size. For each day and each plug, we have only one value per day of data for that time slice and slice size. So, we store all these values in a container.
+
+In the median container we maintain two heaps. Out of the two, one is a min-heap and the other is a max-heap. Each heap contains about half of the values. Now following three cases can occur:
+\begin{itemize}
+\item Case 1: The min-heap contains one more element than the max-heap. In this case, the median is the topmost value of min-heap.
+\item Case 2: The max-heap contains one more element than the min-heap. In this case, the median is the topmost value of max-heap.
+\item Case 3: Both the min-heap and the max-heap contain equal number of elements. In this case, the median is the average of the topmost value of min-heap and the topmost value of max-heap.
+
+\end{itemize}
+
