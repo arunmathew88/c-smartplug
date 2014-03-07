@@ -131,7 +131,7 @@ void* solveHouse(void *threadarg)
             mc[i][household_id][plug_id];
 
             float old_plug_median = mc[i][household_id][plug_id].getMedian();
-            mc[i][household_id][plug_id].del(ch_node->mt.value);
+            mc[i][household_id][plug_id].insert(ch_node->mt.value);
             float new_plug_median = mc[i][household_id][plug_id].getMedian();
             msc[i].insert(household_id, plug_id, new_plug_median, old_plug_median);
 
@@ -242,7 +242,7 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
         while(true)
         {
             float old_median = global_median[i].getMedian();
-
+usleep(10);
             unsigned ts = hr_begin_node[i]->mt.timestamp;
             if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
                 global_median[i].del(hr_begin_node[i]->mt.value);
