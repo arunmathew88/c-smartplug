@@ -183,9 +183,12 @@ float forecastPlugLoad(unsigned int ts, unsigned int forcast_ts, unsigned int hh
     }
     weight = plug_weights[lambdaindex][hh_id][plug_id][slice][0];
 
-    float median;
-    median = median_container[slice][hh_id][plug_id][forcast_ts % 86400].getMedian();
-    float forecast = weight*median + (1 - weight)*avg_value;
+    float median, forecast;
+    median = median_container[hh_id][plug_id][slice][forcast_ts % 86400].getMedian();
+    if (median < 0)
+    	forecast = avg_value;
+    else
+    	forecast = weight*median + (1 - weight)*avg_value;
 
     if(forecast < 0){
         cout << "timestamp =" << ts << "," << weight << "," << median << "," << avg_value << endl;
@@ -563,4 +566,3 @@ int main(int argc, char *argv[])
     close(sockfd);
     return 0;
 }
-
