@@ -89,7 +89,6 @@ struct ThreadData
 void* solveHouse(void *threadarg)
 {
     struct ThreadData *my_data = (struct ThreadData*) threadarg;
-    cout << __LINE__ << endl;
     unordered_map<unsigned,
         unordered_map<unsigned,
             SlidingMc> >
@@ -102,14 +101,14 @@ void* solveHouse(void *threadarg)
 
     while(true)
     {
-        cout << __LINE__ << endl;
         TypeEvent te;
         pthread_mutex_lock(&mutex[house_id]);
         te = ch_node->type;
         pthread_mutex_unlock(&mutex[house_id]);
-        int i = (int) ch_node->ws;
         if(te == GLOBAL_CHANGED)
         {
+            int i = (int) ch_node->ws;
+
             int old_percentage = num_percentage_more[i];
             num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
 
@@ -123,10 +122,18 @@ void* solveHouse(void *threadarg)
             delete node;
         } else if(te == DELETE)
         {
+            int i = (int) ch_node->ws;
+
             unsigned household_id =  ch_node->mt.household_id;
             unsigned plug_id =  ch_node->mt.plug_id;
 
+            // initializing
+            mc[i][household_id][plug_id];
+
+            float old_plug_median = mc[i][household_id][plug_id].getMedian();
             mc[i][household_id][plug_id].del(ch_node->mt.value);
+            float new_plug_median = mc[i][household_id][plug_id].getMedian();
+            msc[i].insert(household_id, plug_id, new_plug_median, old_plug_median);
 
             int old_percentage = num_percentage_more[i];
             num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
@@ -142,26 +149,42 @@ void* solveHouse(void *threadarg)
             delete node;
         } else if(te == BOTH)
         {
+            int i = (int) ch_node->ws;
+
             unsigned household_id =  ch_node->mt.household_id;
             unsigned plug_id =  ch_node->mt.plug_id;
 
+            // initializing
+            mc[i][household_id][plug_id];
+
+            float old_plug_median = mc[i][household_id][plug_id].getMedian();
             mc[i][household_id][plug_id].del(ch_node->mt.value);
+            float new_plug_median = mc[i][household_id][plug_id].getMedian();
+            msc[i].insert(household_id, plug_id, new_plug_median, old_plug_median);
 
             QueueNode *node = ch_node;
             ch_node = ch_node->next;
             delete node;
         } else if(te == INSERT)
         {
+            int i = (int) ch_node->ws;
             unsigned household_id =  ch_node->mt.household_id;
             unsigned plug_id =  ch_node->mt.plug_id;
 
-            mc[i][household_id][plug_id].insert(ch_node->mt.value);
+            // initializing
+            mc[i][household_id][plug_id];
 
-             int old_percentage = num_percentage_more[i];
+            float old_plug_median = mc[i][household_id][plug_id].getMedian();
+            mc[i][household_id][plug_id].del(ch_node->mt.value);
+            float new_plug_median = mc[i][household_id][plug_id].getMedian();
+            msc[i].insert(household_id, plug_id, new_plug_median, old_plug_median);
+
+            int old_percentage = num_percentage_more[i];
             num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
 
             if(old_percentage != num_percentage_more[i])
             {
+                int i = (int) ch_node->ws;
                 cout << (ch_node->times+1-getWindowSize(ch_node->ws)) << "," << ch_node->times << "," << house_id << ","
                              << num_percentage_more[i]/(msc[i].getSize()/100.0) <<endl;
             }
@@ -171,12 +194,10 @@ void* solveHouse(void *threadarg)
             delete node;
         } else if(te == NONE)
         {
-            cout << __LINE__ << endl;
             struct timespec ts;
             ts.tv_sec += 2;
             clock_gettime(CLOCK_REALTIME, &ts);
-            sem_timedwait(&empty[house_id], &ts);
-            cout << __LINE__ << endl;
+            sem_wait(&empty[house_id]);
         } else if(te == EXIT)
         {
             delete ch_node;
