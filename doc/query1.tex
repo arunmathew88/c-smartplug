@@ -1,6 +1,23 @@
-%This file will contain our design approach
-%Describe the basis and then the architecture here - for example how do you calculate medians, what kind of parallelism model is employed? How often do you need to synchronize? etc.
-\subsection{Query 1}
+\subsection{Architecture}
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}[scale=0.8, >=stealth', transform shape, shorten >=1pt, node distance=2cm,auto]
+\tikzstyle{every state}=[draw=blue!50, very thick, fill=blue!20]
+\node[state] (broker) [text width=1.2cm, align=center] {Broker Process};
+
+\node[state] (h2) [right of=broker,text width=1.2cm, align=center, node distance=4cm] {House 2 Process};
+\node[state] (h1) [above of=h2,,text width=1.2cm, align=center] {House 1 Process};
+\node[state] (h3) [below of=h2,text width=1.2cm, align=center] {House 3 Process};
+
+\path[->] (broker) edge node[midway, sloped, anchor=south] {h1 events} (h1);
+\path[->] (broker) edge node[midway] {h2 events} (h2);
+\path[->] (broker) edge node[midway, sloped, anchor=south] {h3 events} (h3);
+\end{tikzpicture}
+\caption{Query 1 System Architecture}
+\end{center}
+\end{figure}
+
 In the context of query 1, time is divided into multiple slots of different time slice sizes. The time slice sizes considered are 1m, 5m, 15m, 60m \& 120m. Hence for a day we have twelve 120m slices and 86400 one minute slices. When processing the events falling withing a time slice, Query 1 should output predicted load of each plug and the house for the next to next time slice. Query 1 should output the load prediction based on the average load of current time slice and the median of the historical load averages of the future time slice for which we are making prediction. We need to produce forecast every 30s.
 
 We have one house process for each house in the data set and a broker process. The broker process reads the data from the input stream (sorted events file in current implementation) and passes it to the corresponding house process. Communication between the processes is done via operating system sockets.
@@ -18,4 +35,3 @@ In the median container we maintain two heaps. Out of the two, one is a min-heap
 \item Case 3: Both the min-heap and the max-heap contain equal number of elements. In this case, the median is the average of the topmost value of min-heap and the topmost value of max-heap.
 
 \end{itemize}
-
