@@ -2,7 +2,7 @@
 
 IDIR = include
 CC = g++
-DEBUG = -O2
+DEBUG = -g
 PROFILE =
 CFLAGS = -Wall -D_FILE_OFFSET_BITS="64" -c -std=c++0x $(DEBUG) -I$(IDIR) $(PROFILE)
 

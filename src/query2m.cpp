@@ -68,8 +68,8 @@ struct QueueNode
     Window ws;
     long int times;
 
-    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, TypeEvent t=NONE, Window w=0, long int t=-1)
-    : mt(m), next(n), global_median(gm), type(t), ws(w), times(t) {}
+    QueueNode(measurement m=measurement(), QueueNode* n=NULL, float gm=-1, TypeEvent te=NONE, Window w=WINDOW_1HR, long int t=-1)
+    : mt(m), next(n), global_median(gm), type(te), ws(w), times(t) {}
 };
 typedef struct QueueNode QueueNode;
 
@@ -89,12 +89,11 @@ struct ThreadData
 void* solveHouse(void *threadarg)
 {
     struct ThreadData *my_data = (struct ThreadData*) threadarg;
-
+    cout << __LINE__ << endl;
     unordered_map<unsigned,
         unordered_map<unsigned,
             SlidingMc> >
     mc[NUM_WINDOWS];
-    SlidingMc global_median[NUM_WINDOWS];
     int num_percentage_more[NUM_WINDOWS] = {0};
     SCont msc[NUM_WINDOWS];
 
@@ -103,19 +102,20 @@ void* solveHouse(void *threadarg)
 
     while(true)
     {
+        cout << __LINE__ << endl;
         TypeEvent te;
         pthread_mutex_lock(&mutex[house_id]);
         te = ch_node->type;
         pthread_mutex_unlock(&mutex[house_id]);
-
+        int i = (int) ch_node->ws;
         if(te == GLOBAL_CHANGED)
         {
             int old_percentage = num_percentage_more[i];
             num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
 
-            if(old_percentage != num_percentage_more[i][m->house_id])
+            if(old_percentage != num_percentage_more[i])
             {
-                cout << (ch_node->times+1-getWindowSize(ws)) << "," << ch_node->times << "," << house_id << ","
+                cout << (ch_node->times+1-getWindowSize(ch_node->ws)) << "," << ch_node->times << "," << house_id << ","
                              << num_percentage_more[i]/(msc[i].getSize()/100.0) <<endl;
             }
             QueueNode *node = ch_node;
@@ -131,9 +131,9 @@ void* solveHouse(void *threadarg)
             int old_percentage = num_percentage_more[i];
             num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
 
-            if(old_percentage != num_percentage_more[i][m->house_id])
+            if(old_percentage != num_percentage_more[i])
             {
-                cout << (ch_node->times+1-getWindowSize(ws)) << "," << ch_node->times << "," << house_id << ","
+                cout << (ch_node->times+1-getWindowSize(ch_node->ws)) << "," << ch_node->times << "," << house_id << ","
                              << num_percentage_more[i]/(msc[i].getSize()/100.0) <<endl;
             }
 
@@ -160,9 +160,9 @@ void* solveHouse(void *threadarg)
              int old_percentage = num_percentage_more[i];
             num_percentage_more[i] = msc[i].getNumOfLargeNum(ch_node->global_median);
 
-            if(old_percentage != num_percentage_more[i][m->house_id])
+            if(old_percentage != num_percentage_more[i])
             {
-                cout << (ch_node->times+1-getWindowSize(ws)) << "," << ch_node->times << "," << house_id << ","
+                cout << (ch_node->times+1-getWindowSize(ch_node->ws)) << "," << ch_node->times << "," << house_id << ","
                              << num_percentage_more[i]/(msc[i].getSize()/100.0) <<endl;
             }
 
@@ -171,10 +171,12 @@ void* solveHouse(void *threadarg)
             delete node;
         } else if(te == NONE)
         {
+            cout << __LINE__ << endl;
             struct timespec ts;
             ts.tv_sec += 2;
             clock_gettime(CLOCK_REALTIME, &ts);
             sem_timedwait(&empty[house_id], &ts);
+            cout << __LINE__ << endl;
         } else if(te == EXIT)
         {
             delete ch_node;
@@ -185,7 +187,7 @@ void* solveHouse(void *threadarg)
     pthread_exit(NULL);
 }
 
-void sendEvent(int house_id, TypeEvent event, QueueNode **current_house_node, measurement m = measurement(),
+void sendEvent(int house_id, TypeEvent event, QueueNode **current_house_node, measurement m,
                 Window ws, long int tstamp, float global_median){
     // passing event to house threads
     current_house_node[house_id]->mt = m;
@@ -263,7 +265,7 @@ void solveQuery2(measurement *m, QueueNode** current_house_node)
                 for(unsigned h=0; h<NUM_HOUSE; h++)
                     //pass event to everybody except to m->house_id and  hr_begin_node[i]->mt.house_id
                     if(h != m->house_id && h != hr_begin_node[i]->mt.house_id)
-                        sendEvent(h, GLOBAL_CHANGED, current_house_node, , ws, pass_ts, new_median);
+                        sendEvent(h, GLOBAL_CHANGED, current_house_node, measurement(), ws, pass_ts, new_median);
             }
 
             if(ts + getWindowSize(ws) <= current_node->mt.timestamp)
