@@ -71,7 +71,4 @@ We keep a linked list to store all the events occurred in a given window (1 hr a
 
 As soon as we receive a new event, we start removing events from the end of the linked list one by one. Every time we delete an event, we compute the median of the plug corresponding to the deleted event. We also compute the global median (median of all the data of all the plugs in the system). Any change in global median requires computation for all houses i.e. we compute whether the number of plugs in a house having median greater than the global median has changed, for every house. Any change in the percentage leads to an output event. If global median is same, we simply look at the house of the plug corresponding to the deleted event only. We compute the number of plugs having median bigger than the global median for the house. Change in the percentage here, leads to another output event. The output event is associated to the window beginning at 1 higher timestamp than the deleted event (ts+1) to (ts+legnth(window)).
 
-Just before we stop sliding the window, the last window is achieved 
 
-
-Keep only one linked list.
