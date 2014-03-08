@@ -39,7 +39,15 @@ std::unordered_map<unsigned int,					//lambda
 			float
 		>
 	>
-> house_weights, house_hist_medians, house_avg_values, house_forecasts, house_ts;
+> house_weights, house_hist_medians, house_avg_values, house_forecasts;
+
+std::unordered_map<unsigned int,                    //lambda
+    std::unordered_map<unsigned int,                //slice
+        std::unordered_map<unsigned int,            //[0-2] historic index [no need for timeofday index]
+            unsigned int
+        >
+    >
+> house_ts;
 
 
 std::unordered_map<unsigned int,					//lambda
@@ -58,7 +66,19 @@ std::unordered_map<unsigned int,                    //lambda
             >
         >
     >
-> plug_weights, plug_hist_medians, plug_avg_values, plug_forecasts, plug_ts;
+> plug_weights, plug_hist_medians, plug_avg_values, plug_forecasts;
+
+std::unordered_map<unsigned int,                    //lambda
+    std::unordered_map<unsigned int,
+        std::unordered_map<unsigned int,
+            std::unordered_map<unsigned int,                //slice
+                std::unordered_map<unsigned int,            //[0-2] historic index [no need for timeofday index]
+                    unsigned int
+                >
+            >
+        >
+    >
+> plug_ts;
 
 
 std::unordered_map<unsigned int,                    //lambda
@@ -72,7 +92,7 @@ std::unordered_map<unsigned int,                    //lambda
 > plug_error;                                      //this is the error to see what value of lambda is the best
 
 
-float lambda[] = {0.1, 0.2, 0.3};  //how many ever values you need.
+float lambda[] = {2};  //how many ever values you need.
 size_t no_of_lambdas = sizeof(lambda)/sizeof(lambda[0]);
 
 unsigned int house_id;
@@ -91,10 +111,6 @@ float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_valu
 	float median;
     median = house_median_container[slice][forcast_ts % 86400].getMedian();
     float forecast = weight*median + (1 - weight)*avg_value;
-    if(forecast < 0){
-        cout << "timestamp =" << ts << "," << weight << "," << median << "," << avg_value << endl;
-        exit(0);
-    }
     if (house_ts[lambdaindex].find(slice) == house_ts[lambdaindex].end())
     {
         house_ts[lambdaindex][slice][0] = 0;
@@ -102,6 +118,7 @@ float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_valu
     }
 
     bool valid_history = ((ts - house_ts[lambdaindex][slice][1]) == 2*timeslice_lengths.at(slice));
+    //cerr << "ts = " << ts << ", house_ts = " << house_ts[lambdaindex][slice][1] << ", timeslice_lengths = " << timeslice_lengths.at(slice) << endl;
 
     if (ts%timeslice_lengths.at(slice) != 0)
         return forecast;
@@ -152,6 +169,8 @@ float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_valu
             wnew = house_weights[lambdaindex][slice][0];
     }
 
+    house_forecasts[lambdaindex][slice][1] = house_forecasts[lambdaindex][slice][0];
+    house_forecasts[lambdaindex][slice][0] = forecast;
 
 	house_weights[lambdaindex][slice][2] = house_weights[lambdaindex][slice][1];
 	house_weights[lambdaindex][slice][1] = house_weights[lambdaindex][slice][0];
@@ -167,6 +186,7 @@ float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_valu
     house_ts[lambdaindex][slice][1] = house_ts[lambdaindex][slice][0];
     house_ts[lambdaindex][slice][0] = ts;
 
+    //cerr << "house_ts = " << house_ts[lambdaindex][slice][0] << endl;
 	return forecast;
 }
 
@@ -189,11 +209,6 @@ float forecastPlugLoad(unsigned int ts, unsigned int forcast_ts, unsigned int hh
     	forecast = avg_value;
     else
     	forecast = weight*median + (1 - weight)*avg_value;
-
-    if(forecast < 0){
-        cout << "timestamp =" << ts << "," << weight << "," << median << "," << avg_value << endl;
-        exit(0);
-    }
 
     if (plug_ts[lambdaindex][hh_id][plug_id].find(slice) == plug_ts[lambdaindex][hh_id][plug_id].end())
     {
@@ -432,8 +447,7 @@ void doProcessing(measurement *input) {
         }
         processHouseHold(0,0,0,0,true);
         gettimeofday(&ctime, NULL);
-        std::cerr << "Latency = " << (ctime.tv_sec - ptime.tv_sec)*1000000 + ctime.tv_usec - ptime.tv_usec<< std::endl;
-        cerr << "HOUSE_ERROR," << lambda[0] << "," << input->timestamp << "," << 0 << "," << house_error[0][0] << endl;
+        //std::cerr << "Latency = " << (ctime.tv_sec - ptime.tv_sec)*1000000 + ctime.tv_usec - ptime.tv_usec<< std::endl;
     }
 
     plug_state &p_state = state[input->household_id][input->plug_id];
@@ -485,7 +499,7 @@ int main(int argc, char *argv[])
 
     if(argc < 4)
     {
-        cout<<"not enough arguments!"<<endl;
+        cout <<"not enough arguments!"<<endl;
         exit(-1);
     } else
     {
