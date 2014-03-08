@@ -49,3 +49,20 @@ When a new value is inserted into the container, following cases can occur-
 \subsection{Prediction Model}
 
 \subsection{Experimental Evaluation}
+We executed our solution in a Virtual Machine Cluster. The broker is running on kvm based 2.1GHz virtual machine with 1 GB memory attached to a 10 Gbit local area network running Ubuntu 12.04. The house processes also run on a similarly configured Virtual Machines. We did experiments running house processes on 1,2 and 4 Virtual Machines dividing equal (or 1 more) number of processes to each VM.
+
+For throughput calculations, we redirected the output to the null file. Throughput will simply be the total number of input events divided by the total time taken in processing all the events. We did each experiment three times and took the average of the three throughput values.
+
+\begin{figure}[h]
+\begin{center}
+	\includegraphics[scale=0.45]{img/q1_latency}
+\end{center}
+\end{figure}
+
+As we increase the number of virtual machines, the latency values do not change much because the broker becomes the bottleneck. The disk read in the broker becomes limits the scalability of the system. On the other hand, throughput remains nearly constant in all the experiments.
+
+\begin{figure}[h]
+\begin{center}
+	\includegraphics[scale=0.45]{img/q1_throughput}
+\end{center}
+\end{figure}
