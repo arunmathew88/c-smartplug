@@ -1,4 +1,10 @@
+Query 1 requires us to forecast average load of each plug and each house in the system. A day is divided into equally spaced slots of different time slices. The time slices are of length 1 min, 5 min, 15 min, 60 min and 120 min. For example, there will be $(24*60/15) = 96$ slots in a day of the time slice of length 15 min; for the 60 min slice, there will be $(24*60/60) = 24$ slots in a day and so on. The average load forecast is computed over all possible slots of all the time slices.
+
+In order to make a forecast, we use 2 values- current average load and median load for the slot of given time slice. Using these 2 values, we forecast the average load for the next to next slot of the same time slice. We put out a forecast every 30 sec i.e. for each time slice we compute average load whenever we accumulate more data for next 30 seconds. As soon as the time slice is over, after making a forecast, we reinitialize the data corresponding to the time slice.
+
+
 \subsection{Architecture}
+The system consists of a broker process and house processes per house. The broker reads the data file and passes all the events for house id \textit{h} to the corresponding house process as shown in the figure. House process is responsible for the forecast of average load of house and all the plugs in all households in the house.
 
 \begin{figure}[h]
 \begin{center}
@@ -18,14 +24,13 @@
 \end{center}
 \end{figure}
 
-In the context of query 1, time is divided into multiple slots of different time slice sizes. The time slice sizes considered are 1m, 5m, 15m, 60m \& 120m. Hence for a day we have twelve 120m slices and 86400 one minute slices. When processing the events falling withing a time slice, Query 1 should output predicted load of each plug and the house for the next to next time slice. Query 1 should output the load prediction based on the average load of current time slice and the median of the historical load averages of the future time slice for which we are making prediction. We need to produce forecast every 30s.
+In the house process, we keep a 30s accumulator for each plug. Whenever we receive an event for a plug, we increment the accumulator with the load value in the received event. We store a count of values we receive with the timestamp within last 30s in order to calculate average later on. We also keep load value accumulators for different time slices (1m, 5m, 15m, 60m and 120m). 
 
-We have one house process for each house in the data set and a broker process. The broker process reads the data from the input stream (sorted events file in current implementation) and passes it to the corresponding house process. Communication between the processes is done via operating system sockets.
+As soon as we receive an event crossing the 30s time window, we add the value of the accumulator and the count into the time slice accumulators (and similarly the count) and reinitialize the 30s accumulator\footnote{For now, we are ignoring events with work values}. A output forecast is triggered, before setting the 30s accumulator to current load value and count to 1. We predict average load for next to next slot for all the time slices using the average load and the historical median of the corresponding slot for a given time slice. The accumulators for each time slice gets reset to 0 if we get an event crossing the slot boundary. We output forecast as 0 if all the data is missing in a slot for a time slice.
 
-In the house process, we have load value accumulators for different time slices (1m, 5m, 15m, 60m and 120m). We also have another accumulator for 30s. When house process gets an event if the event falls within the current 30s time slice, the load \footnote{For now we are ignoring events with work values} value is added to the 30s accumulator and the count of values is incremented. If the event crosses the 30s timeslice, then the accumulated load values and count is added to accumulators of all the other time slices (1m, 5m $\cdot$ etc) and a forecast output is triggered, before setting the 30s accumulator to current load value and count to 1. The triggered forecasting will output the predictions for all the time slices with the average of current accumulated load values and the historical median of the corresponding future time slice. The accumulators for each time slice gets reset, if we get an event crossing the time slice boundary, after making the forecast using the accumulater load value.
+Median Container (MC) used to compute median, provides an interface with inserting a new element and getting the median of all the elements currently in the container. We insert the average load of a plug or house for a given slot of fixed time slice into the container as soon as we compute it. The container returns the exact median of all the average values inserted into it.
 
-
-\subsubsection{The Median Algorithm for query 1}
+\subsection{Median Algorithm (MC)}
 For this query, to forecast the load of a plug in a time slice of a specific size, we need the median of the previous average loads for that time slice and for that slice size. For each day and each plug, we have only one value per day of data for that time slice and slice size. So, we store all these values in a container.
 
 In the median container we maintain two heaps. Out of the two, one is a min-heap and the other is a max-heap. Each heap contains about half of the values. Now following three cases can occur:
@@ -35,3 +40,7 @@ In the median container we maintain two heaps. Out of the two, one is a min-heap
 \item Case 3: Both the min-heap and the max-heap contain equal number of elements. In this case, the median is the average of the topmost value of min-heap and the topmost value of max-heap.
 
 \end{itemize}
+
+\subsection{Prediction Model}
+
+\subsection{Experimental Evaluation}
