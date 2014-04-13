@@ -3,10 +3,15 @@
 In summary, the main contributions of this work are:
 
 \begin{itemize}
-\item A custom design and implementation of a smart grid plug load predictor and outlier identifier system. It is our belief that the custom design led to the significant throughput we observed with the given data set. In fact, the throughput of the system is much higher than what is reported because of the limitations of the broker process which is really not part of the predictor system.
- \item A scalable architecture to process dense smart plug load data streams. Every house process can be given it's own core to run on and so the scalability is limited to the number of house processes we want to process data for. 
- \item A fast and lightweight C implementation of the median based prediction heuristic for predicting the load at smart plugs for different time windows.
- \item A method and code for efficiently sliding two different timeslice windows over a continuous stream of events. 
+\item A custom design and implementation of a smart grid plug load predictor and outlier identifier system.
+It is our belief that the custom design led to the significant throughput we observed with the given data set.
+In fact, the throughput of the system is much higher than what is reported because of the limitations of the broker process which is really not part of the predictor system.
+\item A scalable architecture to process dense smart plug load data streams.
+Every house process can be given it's own core to run on and so the scalability is limited to the number of house processes we want to process data for.
+\item A fast and lightweight C implementation of the median based prediction heuristic for predicting the load at smart plugs for different time windows.
+\item A method and code for efficiently sliding two different timeslice windows over a continuous stream of events.
+
 \end{itemize}
 
-While generic CEP engines such as Esper and Padres can also be used for this, it is our belief that the problem stated is really not a problem meant for CEP engines and hence our approach would work better than if we did employ such middleware. 
+While generic CEP engines such as Esper and Padres can also be used for this, it is our belief that the problem stated is really not a problem meant for CEP engines and hence our approach would work better than if we did employ such middleware.
+
