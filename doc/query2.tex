@@ -118,6 +118,8 @@ In this case we need to compute the median every time we receive an event.
 So every insert or deletion or both will be followed by a call to the \textit{getMedian} function of the container.
 We modify the variable storing the index to the bin having the current median, at the time of insert and delete only.
 
+The insert and delete operation takes O(M) time in the worst case, but on average case this is O($\log(M)$). The getMedian operation is O(1).
+\begin{comment}
 \begin{table}[h]
 \begin{center}
 \begin{tabular}{|c|c|c|}
@@ -133,9 +135,10 @@ We modify the variable storing the index to the bin having the current median, a
 \end{tabular} 
 \end{center}
 \end{table}
+\end{comment}
 
-\subsection{Relative Error for Median Container}
-In this case, we did 1000 experiments, each inserting 50000 random values into the container.
+%\subsection{Relative Error for Median Container}
+We did 1000 experiments to find the Relative Error for Median Container, each inserting 50000 random values into the container.
 The CDF is plotted in the Figure \ref{fig:relative_error}.
 It can be observed that there is very low relative error due to the approximation.
 
@@ -147,12 +150,13 @@ It can be observed that there is very low relative error due to the approximatio
 \end{center}
 \end{figure}
 
-\subsection{Choosing the Number of Bins}
-We did several experiments with the median container in order to figure out an optimum number of bins.
-The Number of bins affects the accuracy of the computed median.
-We used ten datasets generated randomly with different mean and variance.
-We used different number of bins ranging from 100 to 2000 for each dataset and calculated relative error in each case.
+%\subsection{Choosing the Number of Bins}
+We did several tuning experiments with the median container in order to figure out an optimum number of bins and found that bin size greater than 1200 gives lowest error. Hence we use 1200 as bin size.
+%The Number of bins affects the accuracy of the computed median.
+%We used ten datasets generated randomly with different mean and variance.
+%We used different number of bins ranging from 100 to 2000 for each dataset and calculated relative error in each case.
 
+\begin{comment}
 \begin{figure}[h]
 \begin{center}
 \includegraphics[scale=0.5]{img/bin_size_experiment}
@@ -160,9 +164,10 @@ We used different number of bins ranging from 100 to 2000 for each dataset and c
 \caption{\% Relative Error vs No of Bins \label{fig:binsize}}
 \end{center}
 \end{figure}
+\end{comment}
 
-As evident from Figure \ref{fig:binsize}, bin size greater than 1200 gives the lowest error.
-We used bin size equal to 1200 while running Query 2.
+%As evident from Figure \ref{fig:binsize}, bin size greater than 1200 gives the lowest error.
+%We used bin size equal to 1200 while running Query 2.
 
 \subsection{S Container}
 We have to compute the number of plugs in a house having higher median load than the global median load (median load of all the plugs in the system).
@@ -193,7 +198,7 @@ We are able to achieve a constant average throughput of 480 thousand events per 
 
 \begin{figure}[h]
 \begin{center}
-	\includegraphics[scale=0.55]{img/q2_throughput}
+	\includegraphics[width=0.4\textwidth]{img/q2_throughput}
 	\vspace*{-0.4cm}
 	\caption{Throughput vs No.
 of Houses (Query 2) \label{fig:q2_throughput}}
@@ -206,7 +211,7 @@ The utilization level in case of Q2 process is always close to 100\% as shown in
 
 \begin{figure}[h]
 \begin{center}
-	\includegraphics[scale=0.55]{img/q2_utilization}
+	\includegraphics[width=0.4\textwidth]{img/q2_utilization}
 	\vspace*{-0.3cm}
 	\caption{\% Util vs No.
 of Houses (Query 2) \label{fig:q2_util}}
@@ -217,7 +222,7 @@ of Houses (Query 2) \label{fig:q2_util}}
 
 \begin{figure}[h]
 \begin{center}
-	\includegraphics[scale=0.6]{img/q2_latency}
+	\includegraphics[width=0.4\textwidth]{img/q2_latency}
 	\vspace*{-0.3cm}
 	\caption{Latency vs No.
 of Houses (Query 2) \label{fig:q2_latency}}

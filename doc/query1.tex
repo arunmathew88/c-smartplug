@@ -105,30 +105,30 @@ getMedian & O(1) \\
 
 \subsection{Prediction Model}
 We have used Weighted Average with Adaptive Weights prediction model in order to forecast the average load of a house or a plug.
-The predicted average load for a given time slot of a given time slice is computed as follows-
+The \textit{Predicted Average Load}(PL) for a given time slot of a given time slice is computed as follows-
 \begin{align*}
-\mbox{Predicted Load} &= \mbox{W}*\mbox{History Median} \\ &+ (1-\mbox{W})*\mbox{Current Average}
+\mbox{PL} &= \mbox{W}*\mbox{HM}  + (1-\mbox{W})*\mbox{CA}
 \end{align*}
 
-\noindent Where \textit{History Median} is the median of average loads of previous days for the same time slot of same time slice and W is the weight that we are assigning to \textit{History Median} in comparison with \textit{Current Average}.
-We make the prediction for next to next time slot of same time slice.
-Hence, \textit{Current Average} is the average of last to last time slot.
-We give equal weights to \textit{History Median} and \textit{Current Average} in the beginning and set the initial value of the weight \textit{W} as 0.5.
+\noindent Where HM(\textit{History Median}) is the median of average loads of previous days for the same time slot of same time slice and W is the weight that we are assigning to HM in comparison with \textit{Current Average}(CA).
+We make the prediction for next time slot of same time slice.
+Hence, CA is the average of last time slot.
+We give equal weights to HM and CA in the beginning and set the initial value of the weight \textit{W} as 0.5.
 As the program execution progresses, the value of \textit{W} is adapted based on the actual value we receive for each output forecast.
 We define the error in the forecast as follows-
 \begin{align*}
-\mbox{Error} &= (\mbox{Actual Load} - \mbox{Predicted Load})^2\\ &+ \lambda * (\mbox{W}_{new} - \mbox{W})^2
+\mbox{Error} &= (\mbox{AL} - \mbox{PL})^2 + \lambda * (\mbox{W}_{new} - \mbox{W})^2
 \end{align*}
 
 \noindent $\lambda$ is a parameter to control the learning over W.
-\textit{Predicted Load} is computed using $\mbox{W}_{new}$.
+PL is computed using $\mbox{W}_{new}$.
 Our goal is to minimize the above Error.
-We differentiate the Error with respect to $\mbox{W}_{new}$ and get the following expression when equated to 0-
+We differentiate the Error with respect to $\mbox{W}_{new}$ and get the following expression when equated to 0.
 \begin{align*}
 \mbox{W}_{new} &= \frac{\mbox{W}*\lambda-(\mbox{AL}-\mbox{CA}) * (\mbox{HM}-\mbox{CA})}{\lambda + (\mbox{HM}-\mbox{CA})^2}
 \end{align*}
 
-\noindent Where AL=Actual Load, CA=Current Average, HM = History Median.
+%\noindent Where AL=Actual Load, CA=Current Average, HM = History Median.
 Note that we use different weights for different houses for each time slice.
 We tried different values of $\lambda=0.01, 2, 100$ and we achieved minimum error in case of $\lambda = 2$.
 $\lambda$ is fixed throughout the experiment.
@@ -145,7 +145,7 @@ Throughput will simply be the total number of input events divided by the total 
 We did each experiment three times and took the average of the three throughput values.
 \begin{figure}[h]
 \begin{center}
-	\includegraphics[scale=0.6]{img/q1_latency}
+	\includegraphics[width=0.4\textwidth]{img/q1_latency}
 	\vspace*{-0.4cm}
 	\caption{Latency vs No of Houses (Query 1) \label{fig:q1_latency}}
 \end{center}
@@ -159,7 +159,7 @@ On the other hand, throughput remains nearly constant in all the experiments as 
 
 \begin{figure}[h]
 \begin{center}
-	\includegraphics[scale=0.45]{img/q1_throughput}
+	\includegraphics[width=0.4\textwidth]{img/q1_throughput}
 	\vspace*{-0.4cm}
 	\caption{Throughput vs No of Houses (Query 1)\label{fig:q1_throughput}}
 \end{center}
@@ -172,7 +172,7 @@ If we were getting events as a stream and can avoid both the disk I/O and conver
 
 \begin{figure}[h]
 \begin{center}
-	\includegraphics[scale=0.5]{img/q1_utilization}
+	\includegraphics[width=0.4\textwidth]{img/q1_utilization}
 	\vspace*{-0.4cm}
 	\caption{\% Utilization vs No of Houses (Query 1)\label{fig:q1_util}}
 \end{center}
