@@ -15,7 +15,7 @@ The broker process reads data from a file and sends events to the Q2 process.
 Q2 keeps a linked list of all the events of last 24 hrs in the order they have been received.
 Whenever a new event is received by Q2, we slide the window such that some of the events from the tail of the linked list are removed and the new event is inserted at the head.
 Further, required plug medians and global median are recomputed and change in the number of outlier plugs is written to the output file (denoting an output event).
-
+\begin{comment}
 \begin{figure}[h]
 \begin{center}
 \begin{tikzpicture}[scale=0.7, >=stealth', transform shape, shorten >=1pt, node distance=4cm,auto]
@@ -29,6 +29,7 @@ Further, required plug medians and global median are recomputed and change in th
 \end{center}
 \end{figure}
 \vspace*{-0.3cm}
+\end{comment}
 
 We use the Sliding Median Container (SlidingMc) in order to compute various medians and S Container (SCont) for the purpose of finding the number of outliers in every house.
 Let's assume an event \textit{E} is received by the Q2 process from the broker process with timestamp \textit{$T_E$}.
@@ -199,7 +200,7 @@ of Houses (Query 2) \label{fig:q2_throughput}}
 \end{center}
 \end{figure}
 
-\vspace*{-0.5cm}
+%\vspace*{-0.5cm}
 Because there is only one Q2 process computing all the percentage values, throughput doesn't change significantly in terms of events/sec as the number of house increases.
 The utilization level in case of Q2 process is always close to 100\% as shown in Figure \ref{fig:q2_util}.
 
@@ -212,7 +213,7 @@ of Houses (Query 2) \label{fig:q2_util}}
 \end{center}
 \end{figure}
 
-\vspace*{-0.4cm}
+%\vspace*{-0.4cm}
 
 \begin{figure}[h]
 \begin{center}
@@ -223,7 +224,7 @@ of Houses (Query 2) \label{fig:q2_latency}}
 \end{center}
 \end{figure}
 
-\vspace*{-0.4cm}
+%\vspace*{-0.4cm}
 Latency corresponding to an output event, in case of Query 2, is defined as the amount of time taken to output event after the corresponding input event is received.
 Note that one input event may result in more than one output events and latency of the events output later will be higher.
 Latency graph for Query 2 is shown in Figure \ref{fig:q2_latency}.
