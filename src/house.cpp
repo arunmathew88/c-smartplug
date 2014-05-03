@@ -576,6 +576,59 @@ int main(int argc, char *argv[])
         }
     }
 
+    //print error
+    std::unordered_map<unsigned int,					//lambda
+		std::unordered_map<unsigned int,
+        	float>
+    >::iterator it;
+	for(it = house_error.begin(); it != house_error.end(); it++){
+		std::unordered_map<unsigned int,
+        	float>::iterator it1;
+        for(it1 = (*it).second.begin(); it1 = (*it).second.end(); it1++){
+        	cout << "lambda = " << lambda[(*it).first] << ", slice = " << (*it1).first
+        	<< ", house error = " << (*it1).second << endl;
+        }
+	}
+
+
+	std::unordered_map<unsigned int,                    //lambda
+	    std::unordered_map<unsigned int,                //slice
+	        std::unordered_map<unsigned int,
+	            std::unordered_map<unsigned int,
+	                float
+	            >
+	        >
+	    >
+	>::iterator plug_it;
+	for(plug_it = plug_error.begin(); plug_it != plug_error.end(); plug_it++){
+		std::unordered_map<unsigned int,                //slice
+            std::unordered_map<unsigned int,
+                std::unordered_map<unsigned int,
+                    float
+                >
+            >
+        >::iterator plug_it1;
+        for(plug_it1 = (*plug_it).second.begin(); plug_it1 != (*plug_it).second.end(); plug_it1++){
+            std::unordered_map<unsigned int,
+                std::unordered_map<unsigned int,
+                    float
+                >
+            >::iterator plug_it2;
+            for(plug_it2 = (*plug_it1).second.begin(); plug_it2 != (*plug_it1).second.end(); plug_it2++){
+                std::unordered_map<unsigned int,
+                    float
+                >::iterator plug_it3;
+                for(plug_it3 = (*plug_it2).second.begin(); plug_it3 = (*plug_it2).second.end(); plug_it3++){
+                    cout << "lambda = " << lambda[(*plug_it).first] << ", slice = " << (*plug_it1).first
+                    << ", hh_id = " << (*plug_it2).first << ", plug_id = " << (*plug_it3).first <<
+                    ", plug_error = " << (*plug_it3).second << endl;
+                }
+            }
+        }
+	}
+
+
+
     delete m;
     close(sockfd);
     return 0;
