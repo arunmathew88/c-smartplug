@@ -41,6 +41,12 @@ std::unordered_map<unsigned int,					//lambda
 	>
 > house_weights, house_hist_medians, house_avg_values, house_forecasts;
 
+std::unordered_map<unsigned int,                //slice
+    std::unordered_map<unsigned int,            //[0-2] historic index [no need for timeofday index]
+        float
+    >
+> base_value_house;
+
 std::unordered_map<unsigned int,                    //lambda
     std::unordered_map<unsigned int,                //slice
         std::unordered_map<unsigned int,            //[0-2] historic index [no need for timeofday index]
@@ -68,6 +74,17 @@ std::unordered_map<unsigned int,                    //lambda
     >
 > plug_weights, plug_hist_medians, plug_avg_values, plug_forecasts;
 
+
+std::unordered_map<unsigned int,
+    std::unordered_map<unsigned int,
+        std::unordered_map<unsigned int,                //slice
+            std::unordered_map<unsigned int,            //[0-2] historic index [no need for timeofday index]
+                float
+            >
+        >
+    >
+> base_value_plug;
+
 std::unordered_map<unsigned int,                    //lambda
     std::unordered_map<unsigned int,
         std::unordered_map<unsigned int,
@@ -92,14 +109,14 @@ std::unordered_map<unsigned int,                    //lambda
 > plug_error;                                      //this is the error to see what value of lambda is the best
 
 
-float lambda[] = {2};  //how many ever values you need.
+float lambda[] = {2, -1};  //how many ever values you need.
 size_t no_of_lambdas = sizeof(lambda)/sizeof(lambda[0]);
 
 unsigned int house_id;
 
-float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_value, unsigned int slice, unsigned int lambdaindex = 0) {
-	if (ts%21600 == 0)
-        cerr << "HOUSE_ERROR," << lambda[lambdaindex] << "," << ts << "," << slice << "," << house_error[lambdaindex][slice] << endl;
+float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_value, unsigned int slice, unsigned int lambdaindex = 0, float forcast) {
+	//if (ts%21600 == 0)
+        //cerr << "HOUSE_ERROR," << lambda[lambdaindex] << "," << ts << "," << slice << "," << house_error[lambdaindex][slice] << endl;
 
     float weight;
 	if (house_weights[lambdaindex].find(slice) == house_weights[lambdaindex].end()) {
@@ -133,6 +150,11 @@ float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_valu
 		house_forecasts[lambdaindex][slice][1] = 0;
 	}
 
+    if (base_value_house.find(slice) == base_value_house.end()) {
+        base_value_house[slice][0] = 0;
+        base_value_house[slice][1] = 0;
+    }
+
 	if (house_avg_values[lambdaindex].find(slice) == house_avg_values[lambdaindex].end()) {
 		house_avg_values[lambdaindex][slice][0] = 0;
 		house_avg_values[lambdaindex][slice][1] = 0;
@@ -145,7 +167,10 @@ float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_valu
     if (valid_history)
     {
         float error = (avg_value - house_forecasts[lambdaindex][slice][1]);
+        float base_error = (avg_value - base_value_house[slice][1]);
         house_error[lambdaindex][slice] += error * error;
+        cout << "Difference between house error = ," << lambdaindex << "," << slice << "," << ts << "," << 
+        ((error * error) -  (base_error * base_error)) << endl;
     }
 
     float wnew = house_weights[lambdaindex][slice][0];
@@ -172,6 +197,9 @@ float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_valu
     house_forecasts[lambdaindex][slice][1] = house_forecasts[lambdaindex][slice][0];
     house_forecasts[lambdaindex][slice][0] = forecast;
 
+    base_value_house[slice][1] = base_value_house[slice][0];
+    base_value_house[slice][0] = forecast;
+
 	house_weights[lambdaindex][slice][2] = house_weights[lambdaindex][slice][1];
 	house_weights[lambdaindex][slice][1] = house_weights[lambdaindex][slice][0];
 	house_weights[lambdaindex][slice][0] = wnew;
@@ -190,11 +218,11 @@ float forecastHouseLoad(unsigned int ts, unsigned int forcast_ts, float avg_valu
 	return forecast;
 }
 
-float forecastPlugLoad(unsigned int ts, unsigned int forcast_ts, unsigned int hh_id, unsigned int plug_id, float avg_value, unsigned int slice, unsigned int lambdaindex = 0)
+float forecastPlugLoad(unsigned int ts, unsigned int forcast_ts, unsigned int hh_id, unsigned int plug_id, float avg_value, unsigned int slice, unsigned int lambdaindex = 0, float forcast)
 {
     //lambda, timestamp, hh_id, plug_id, slice, error
-    if (ts%21600 == 0)
-        cerr << "PLUG_ERROR," << lambda[lambdaindex] << "," << ts << "," << hh_id << "," << plug_id << "," << slice << "," << plug_error[lambdaindex][hh_id][plug_id][slice] << endl;
+    //if (ts%21600 == 0)
+        //cerr << "PLUG_ERROR," << lambda[lambdaindex] << "," << ts << "," << hh_id << "," << plug_id << "," << slice << "," << plug_error[lambdaindex][hh_id][plug_id][slice] << endl;
     float weight;
     if (plug_weights[lambdaindex][hh_id][plug_id].find(slice) == plug_weights[lambdaindex][hh_id][plug_id].end()) {
         plug_weights[lambdaindex][hh_id][plug_id][slice][0] = 0.5;
@@ -231,6 +259,11 @@ float forecastPlugLoad(unsigned int ts, unsigned int forcast_ts, unsigned int hh
         plug_forecasts[lambdaindex][hh_id][plug_id][slice][1] = 0;
     }
 
+    if (base_value_plug[hh_id][plug_id].find(slice) == base_value_plug[hh_id][plug_id].end()) {
+        base_value_plug[hh_id][plug_id][slice][0] = 0;
+        base_value_plug[hh_id][plug_id][slice][1] = 0;
+    }
+
     if (plug_avg_values[lambdaindex][hh_id][plug_id].find(slice) == plug_avg_values[lambdaindex][hh_id][plug_id].end()) {
         plug_avg_values[lambdaindex][hh_id][plug_id][slice][0] = 0;
         plug_avg_values[lambdaindex][hh_id][plug_id][slice][1] = 0;
@@ -243,11 +276,18 @@ float forecastPlugLoad(unsigned int ts, unsigned int forcast_ts, unsigned int hh
     if (valid_history)
     {
         float error = (avg_value - plug_forecasts[lambdaindex][hh_id][plug_id][slice][1]);
+        float base_error = (avg_value - base_value_plug[hh_id][plug_id][slice][1]);
         plug_error[lambdaindex][hh_id][plug_id][slice] = error * error;
+        cout << "Difference between plug error = ," << lambdaindex << "," << hh_id << "," << plug_id << "," << slice << "," << ts << "," << 
+        ((error * error) -  (base_error * base_error)) << endl;
     }
 
     plug_forecasts[lambdaindex][hh_id][plug_id][slice][1] = plug_forecasts[lambdaindex][hh_id][plug_id][slice][0];
     plug_forecasts[lambdaindex][hh_id][plug_id][slice][0] = forecast;
+
+    
+    base_value_plug[hh_id][plug_id][slice][1] = base_value_plug[hh_id][plug_id][slice][0];
+    base_value_plug[hh_id][plug_id][slice][0] = forcast;
 
     float wnew = plug_weights[lambdaindex][hh_id][plug_id][slice][0];
     if (valid_history)
@@ -312,8 +352,9 @@ void forcastHouseLoad(unsigned int ts, float average_load, unsigned int slice) {
     else
     {
         forcast = (average_load + median)/2;
+
         for(unsigned int i = 0; i < no_of_lambdas; i++)
-            forcast = forecastHouseLoad(ts, forcast_ts, average_load, slice, i);
+            forcast = forecastHouseLoad(ts, forcast_ts, average_load, slice, i, forcasy);
     }
 
     printf("HOUSE_FORECAST_%u_S %u %u,%u,%f\n", timeslice_lengths.at(slice), ts, forcast_ts, house_id, forcast);
@@ -576,7 +617,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    //print error
+    /*//print error
     std::unordered_map<unsigned int,					//lambda
 		std::unordered_map<unsigned int,
         	float>
@@ -625,7 +666,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
-	}
+	}*/
 
 
 
