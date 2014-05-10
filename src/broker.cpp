@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     int *con_map;
     con_map = new int[subscribers_expected];
 
-    unsigned id;
+//    unsigned id;
     int house_id;
 
 	# define BUFFERLENGTH (128*1024)
@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
 	}
 
 	FILE * ifile = fopen(data_file.c_str(), "r");
-	measurement m;
+//	measurement m;
 
 	unsigned long count=0, stat=atol(argv[3]);
     timeval ctime = {0}, ptime;
@@ -94,7 +94,63 @@ int main(int argc, char *argv[])
     unsigned int pts = 0;
     size_t bytesWritten = 0;
 
-	while(!feof(ifile))
+# define READBUFFERLENGTH (96*1024*1024)
+    char *readbuffer = new char[READBUFFERLENGTH];
+    size_t readoffset = 0, remaining_bytes = 0;
+
+    struct wrapper {
+    	unsigned long id;
+    	measurement m;
+    	unsigned int house_id;
+    }event;
+
+    while(!feof(ifile))
+    {
+    	remaining_bytes += fread(readbuffer + readoffset, 1, READBUFFERLENGTH - readoffset, ifile);
+    	readoffset = 0;
+		while (readoffset < remaining_bytes) {
+			memcpy(&event, readbuffer+readoffset,sizeof(event));
+			readoffset += sizeof(event);
+
+			// send the message
+			if ( event.house_id < subscribers )
+			{
+				memcpy((buffer[event.house_id]+offset[event.house_id]), &event.m, sizeof(measurement));
+				offset[event.house_id] += sizeof(event.m);
+				if (BUFFERLENGTH - offset[event.house_id] < sizeof(event.m)) {
+					do {
+						bytesWritten += write(con_map[event.house_id], buffer[event.house_id] + bytesWritten, offset[house_id] - bytesWritten);
+					} while (bytesWritten != offset[event.house_id]);
+					bytesWritten = 0;
+					offset[event.house_id] = 0;
+				}
+				count++;
+			}
+			if (event.m.timestamp - pts > 30) {
+				for(int i=0; i<subscribers_expected; i++)
+					if (offset[i] != 0) {
+						do {
+							bytesWritten += write(con_map[i], buffer[i] + bytesWritten, offset[i] - bytesWritten);
+						} while (bytesWritten != offset[i]);
+						bytesWritten = 0;
+						offset[i] = 0;
+					}
+				pts = event.m.timestamp - event.m.timestamp % 30;
+			}
+			if(count == stat)
+			{
+				gettimeofday(&ctime, NULL);
+				cerr<<"Throughput = "<<(unsigned int)(count*1000000.0/((ctime.tv_sec - ptime.tv_sec)*1000000 + ctime.tv_usec - ptime.tv_usec))<<endl;
+				ptime = ctime;
+				count = 0;
+			}
+
+    	};
+		remaining_bytes = 0;
+    }
+    delete readbuffer;
+/*
+    while(!feof(ifile))
 	{
 		if(fscanf(ifile, "%u,%u,%f,%c,%u,%u,%u", &id, &m.timestamp, &m.value, &m.property, &m.plug_id, &m.household_id, &house_id) < 7)
 			continue;
@@ -132,7 +188,7 @@ int main(int argc, char *argv[])
 			count = 0;
 		}
 	}
-
+*/
 
 	for(int i=0; i<subscribers_expected; i++) {
 		if (offset[i] != 0) {
@@ -148,3 +204,4 @@ int main(int argc, char *argv[])
     delete[] con_map;
     close(listenfd);
 }
+

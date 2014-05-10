@@ -227,7 +227,7 @@ void doProcessing(measurement *input) {
     }
     ptime = ctime;
 }
-/*
+
 // arg: house_id broker_ip port
 int main(int argc, char *argv[])
 {
@@ -317,4 +317,4 @@ int main(int argc, char *argv[])
     close(sockfd);
     return 0;
 }
-*/
+
